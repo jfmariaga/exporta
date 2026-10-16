@@ -1,0 +1,123 @@
+@import url('https://fonts.bunny.net/css?family=inter:400,500,600,700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+    [x-cloak] { display: none !important; }
+    html { scroll-behavior: smooth; }
+    body {
+        @apply bg-ink-100 text-ink-800 antialiased;
+        font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+        overflow-x: clip;
+    }
+    h1, h2, h3, h4 {
+        @apply text-ink-900 tracking-tight;
+    }
+}
+
+@layer components {
+    /* Tarjetas */
+    .card {
+        @apply rounded-xl border border-ink-200 bg-white shadow-card;
+    }
+    .card-pad {
+        @apply p-5 sm:p-6;
+    }
+
+    /* Tablas de datos */
+    .data-table {
+        @apply w-full border-collapse text-sm;
+    }
+    .data-table thead th {
+        @apply sticky top-0 z-10 whitespace-nowrap border-b border-ink-200 bg-ink-50/95 px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-ink-500 backdrop-blur;
+    }
+    .data-table tbody td {
+        @apply border-b border-ink-100 px-4 py-3 align-middle text-ink-700;
+    }
+    .data-table tbody tr:hover {
+        @apply bg-brand-50/40;
+    }
+    .data-table tbody tr:last-child td {
+        @apply border-b-0;
+    }
+    .num {
+        @apply text-right tabular-nums;
+    }
+
+    /* Controles de formulario */
+    .field {
+        @apply block w-full rounded-lg border-ink-300 text-sm shadow-sm transition focus:border-brand-500 focus:ring-brand-500 disabled:bg-ink-100 disabled:text-ink-500;
+    }
+    .field-sm {
+        @apply rounded-lg border-ink-300 text-sm shadow-sm focus:border-brand-500 focus:ring-brand-500 disabled:bg-ink-100 disabled:text-ink-500;
+    }
+    .lbl {
+        @apply mb-1 block text-xs font-medium text-ink-500;
+    }
+
+    /* Botones */
+    .btn {
+        @apply inline-flex items-center justify-center gap-1.5 rounded-lg px-3.5 py-2 text-sm font-semibold shadow-sm transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-1 disabled:cursor-not-allowed disabled:opacity-60;
+    }
+    .btn-primary {
+        @apply btn bg-brand-700 text-white hover:bg-brand-800;
+    }
+    .btn-secondary {
+        @apply btn border border-ink-300 bg-white text-ink-700 hover:bg-ink-50;
+    }
+    .btn-dark {
+        @apply btn bg-ink-800 text-white hover:bg-ink-700;
+    }
+    .btn-link {
+        @apply text-sm font-medium text-brand-700 hover:text-brand-800 hover:underline;
+    }
+    .btn-danger-link {
+        @apply text-sm font-medium text-rose-600 hover:text-rose-500 hover:underline;
+    }
+    .btn-xs {
+        @apply px-2.5 py-1 text-xs;
+    }
+    .btn-sm {
+        @apply px-3 py-1.5 text-xs;
+    }
+
+    /* Definición clave/valor para cabeceras */
+    .kv-label {
+        @apply text-xs font-medium uppercase tracking-wide text-ink-400;
+    }
+    .kv-value {
+        @apply mt-0.5 text-sm font-medium text-ink-900;
+    }
+
+    /* Insignias */
+    .badge {
+        @apply inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 ring-inset;
+    }
+    .badge-gray   { @apply bg-ink-100 text-ink-700 ring-ink-200; }
+    .badge-brand  { @apply bg-brand-50 text-brand-700 ring-brand-200; }
+    .badge-blue   { @apply bg-sky-50 text-sky-700 ring-sky-200; }
+    .badge-green  { @apply bg-emerald-50 text-emerald-700 ring-emerald-200; }
+    .badge-amber  { @apply bg-amber-50 text-amber-700 ring-amber-200; }
+    .badge-red    { @apply bg-rose-50 text-rose-700 ring-rose-200; }
+    .badge-violet { @apply bg-violet-50 text-violet-700 ring-violet-200; }
+
+    /* Previsualización del correo (HTML crudo del builder) */
+    .correo-preview table {
+        @apply my-2 border-collapse text-xs;
+    }
+    .correo-preview th,
+    .correo-preview td {
+        @apply border border-ink-300 px-2 py-1 text-left;
+    }
+    .correo-preview th {
+        @apply bg-ink-100 font-semibold;
+    }
+    .correo-preview h3 {
+        @apply mt-4 text-sm font-semibold text-ink-800;
+    }
+    .correo-preview p {
+        @apply my-1 text-ink-600;
+    }
+}

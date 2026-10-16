@@ -1,0 +1,23 @@
+{
+    "Email": "Correo",
+    "Password": "Contraseña",
+    "Confirm Password": "Confirmar contraseña",
+    "Current Password": "Contraseña actual",
+    "New Password": "Nueva contraseña",
+    "Remember me": "Recordarme",
+    "Log in": "Iniciar sesión",
+    "Log Out": "Cerrar sesión",
+    "Forgot your password?": "¿Olvidaste tu contraseña?",
+    "Profile": "Perfil",
+    "Profile Information": "Datos del perfil",
+    "Update your account's profile information and email address.": "Actualiza el nombre y el correo de tu cuenta.",
+    "Name": "Nombre",
+    "Save": "Guardar",
+    "Saved.": "Guardado.",
+    "Update Password": "Cambiar contraseña",
+    "Ensure your account is using a long, random password to stay secure.": "Usa una contraseña larga y aleatoria para mantener tu cuenta segura.",
+    "Delete Account": "Eliminar cuenta",
+    "Cancel": "Cancelar",
+    "This is a secure area of the application. Please confirm your password before continuing.": "Esta es un área segura. Confirma tu contraseña para continuar.",
+    "Confirm": "Confirmar"
+}
