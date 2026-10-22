@@ -111,4 +111,76 @@ class PedidosPorLiberarQueryTest extends TestCase
         $this->sembrar();
         $this->assertNull(app(PedidosPorLiberarQuery::class)->detallePedido('999'));
     }
+
+    public function test_calcula_volumen_y_sugiere_contenedor(): void
+    {
+        Cliente::create(['nit_cliente' => 'B1', 'cliente' => 'X', 'destino' => 'ESPAÑA']);
+        // 24 cajas/embalaje, 25.137 m3/1e6 por caja -> cantidad 2400 => 100 cajas => 2,5137 m3
+        ParametroItem::create(['item' => '001131', 'factor_kg' => 0.5, 'embalaje' => 24, 'volumen' => 25137]);
+        LineaPedido::create([
+            'pedido' => '200', 'item' => '001131', 'bodega' => '004', 'unidad_medida' => 'UN',
+            'cantidad_pedida' => 2400, 'nit_cliente' => 'B1', 'nombre_cliente' => 'X',
+            'estado' => 'PL', 'activo' => true, 'fecha_elaboracion' => '2026-08-04',
+        ]);
+
+        $resumen = app(PedidosPorLiberarQuery::class)->resumenPorPedido()->getCollection()->firstWhere('pedido', '200');
+        $this->assertEqualsWithDelta(100.0, $resumen->cajas_total, 0.1);
+        $this->assertFalse((bool) $resumen->cajas_incompleto);
+        $this->assertEqualsWithDelta(2.51, $resumen->volumen_total, 0.01);
+        $this->assertFalse((bool) $resumen->volumen_incompleto);
+        $this->assertSame("Contenedor 20'", $resumen->contenedor_sugerido);
+
+        $detalle = app(PedidosPorLiberarQuery::class)->detallePedido('200');
+        $this->assertEqualsWithDelta(2.51, $detalle['totales']->volumen_total, 0.01);
+        $this->assertSame("Contenedor 20'", $detalle['totales']->contenedor_sugerido);
+
+        $linea = $detalle['lineas']->firstWhere('item', '001131');
+        $this->assertEqualsWithDelta(100.0, (float) $linea->cajas_linea, 0.001);
+    }
+
+    public function test_cajas_linea_es_null_sin_embalaje(): void
+    {
+        $this->sembrar();
+        // item 001131 en sembrar() no tiene embalaje definido
+        $detalle = app(PedidosPorLiberarQuery::class)->detallePedido('179');
+        $this->assertNull($detalle['lineas']->firstWhere('item', '001131')->cajas_linea);
+    }
+
+    public function test_sugiere_contenedor_40_y_alerta_de_cubicaje_excedido(): void
+    {
+        Cliente::create(['nit_cliente' => 'B2', 'cliente' => 'X', 'destino' => 'ESPAÑA']);
+        // 1 caja/embalaje, volumen 40.000.000 -> 1 caja => 40 m3 (> 32, <= 60 -> 40')
+        ParametroItem::create(['item' => '000001', 'factor_kg' => 0.5, 'embalaje' => 1, 'volumen' => 40000000]);
+        // 1 caja/embalaje, volumen 70.000.000 -> 70 m3 (> 60 -> excede cubicaje)
+        ParametroItem::create(['item' => '000002', 'factor_kg' => 0.5, 'embalaje' => 1, 'volumen' => 70000000]);
+
+        LineaPedido::create([
+            'pedido' => '201', 'item' => '000001', 'bodega' => '004', 'unidad_medida' => 'UN',
+            'cantidad_pedida' => 1, 'nit_cliente' => 'B2', 'nombre_cliente' => 'X',
+            'estado' => 'PL', 'activo' => true, 'fecha_elaboracion' => '2026-08-04',
+        ]);
+        LineaPedido::create([
+            'pedido' => '202', 'item' => '000002', 'bodega' => '004', 'unidad_medida' => 'UN',
+            'cantidad_pedida' => 1, 'nit_cliente' => 'B2', 'nombre_cliente' => 'X',
+            'estado' => 'PL', 'activo' => true, 'fecha_elaboracion' => '2026-08-04',
+        ]);
+
+        $col = app(PedidosPorLiberarQuery::class)->resumenPorPedido()->getCollection();
+        $this->assertSame("Contenedor 40'", $col->firstWhere('pedido', '201')->contenedor_sugerido);
+        $this->assertSame('Excede cubicaje', $col->firstWhere('pedido', '202')->contenedor_sugerido);
+    }
+
+    public function test_sin_embalaje_o_volumen_marca_incompleto(): void
+    {
+        $this->sembrar();
+        // item 001131 no tiene embalaje/volumen en sembrar()
+        $p179 = app(PedidosPorLiberarQuery::class)->resumenPorPedido()->getCollection()->firstWhere('pedido', '179');
+
+        $this->assertTrue((bool) $p179->volumen_incompleto);
+
+        $detalle = app(PedidosPorLiberarQuery::class)->detallePedido('179');
+        $linea = $detalle['lineas']->firstWhere('item', '001131');
+        $this->assertTrue((bool) $linea->sin_volumen);
+        $this->assertTrue($detalle['totales']->volumen_incompleto);
+    }
 }

@@ -17,10 +17,18 @@ administración de usuarios, roles y permisos.
 - **Laravel 12** · **PHP 8.3** · **MySQL 8** (`DB_CONNECTION=mysql`, base `seguimiento_pedidos`).
 - **Laravel Breeze (stack Livewire + Volt, clases)** · **Livewire 3** · **Blade + Tailwind CSS v3 + Vite 7**.
   Toda la UI son componentes **Volt** en `resources/views/livewire/**`, cargados con `Volt::route()`.
-- **UI kit propio**: componentes `<x-ui.page>` (encabezado + ancho `max-w-screen-2xl` + flash),
+- **UI kit propio**: componentes `<x-ui.page>` (encabezado + ancho completo + flash),
   `<x-ui.card>`, `<x-ui.badge color="…">`, y clases utilitarias en `resources/css/app.css`
-  (`.data-table` con encabezado sticky, `.field` / `.field-sm`, `.btn-primary` / `.btn-secondary`
-  / `.btn-dark` / `.btn-link`, `.kv-label` / `.kv-value`, `.num` para columnas numéricas).
+  (`.data-table` con encabezado sticky, variante `.data-table--compact` para tablas con muchas
+  columnas, `.field` / `.field-sm`, `.btn-primary` / `.btn-secondary` / `.btn-dark` / `.btn-link`,
+  `.kv-label` / `.kv-value`, `.num` para columnas numéricas). `App\Support\Numero::decimal()`
+  formatea números en es-CO (coma decimal, punto de miles) recortando ceros sobrantes.
+- **SweetAlert2** (`resources/js/app.js`, expuesto como `window.Swal`/`window.Toast`): reemplaza
+  los `confirm()` nativos del navegador y los mensajes flash de éxito. Patrón de confirmación de
+  borrado (ver `admin/*/index.blade.php`): botón con `x-data x-on:click="Swal.fire({...}).then(r
+  => { if (r.isConfirmed) $wire.eliminar(id) })"`, usando `@js(...)` de Blade para los textos
+  dinámicos (evita problemas de comillas). El flash `session()->flash('status', …)` ya no se
+  pinta como caja verde: `<x-ui.page>` dispara un `Toast.fire(...)` vía `x-init` + `@js()`.
 - `maatwebsite/excel` instalado; la importación de Excel usa `PhpSpreadsheet\IOFactory` directo.
 - **Fuente ERP conmutable** (`config/erp.php` → `ERP_FUENTE`): `excel` (`erp:importar`) o
   `directo` (`erp:sincronizar`, conexión `erp` sqlsrv de sólo lectura). Ver `specs/001-.../erp-fuentes.md`.
@@ -41,6 +49,12 @@ administración de usuarios, roles y permisos.
 - **Inventario** (`seguimientos.inventario`, editable por línea, igual que estado de materiales
   y observaciones) → **% de cumplimiento** de la línea = `inventario / cantidad_pedida × 100`
   (null si no hay cantidad). A nivel de pedido: `Σ inventario / Σ cantidad_pedida × 100`.
+- **Reparto de inventario por ítem** (`DisponibilidadInventario::estados()`, módulo `/inventario`):
+  `cantidad_total` (existencia sincronizada de SyncBox, mostrada como "Inventario") vs
+  `total_pedido` (`Σ cantidad_pedida` de todas las líneas PL/PP activas de ese ítem, sin
+  importar si ya se repartió) → `faltante = max(0, total_pedido - cantidad_total)`, mostrado
+  como alerta roja cuando es mayor a cero. Distinto de `asignado`/`disponible`, que miden el
+  reparto manual ya hecho (`Σ seguimientos.inventario`), no la demanda total.
 - **Filtro por parámetro** (`parametros_item.categoria`): vive en el **detalle del pedido**
   (`pedidos/show`), filtra las líneas de ese pedido; NO está en el listado general.
 - El **ERP es de sólo lectura**. `lineas_pedido` se refresca por `erp:importar <ruta.xlsx>`
@@ -61,10 +75,19 @@ administración de usuarios, roles y permisos.
   Derivados: `alerta` (`🔴/🟡/✅`) y `comentario_correo`
   (sin fecha → `"PENDIENTE POR DEFINIR FECHA"`; con fecha → `"Pedido disponible para cargue sobre el dd/mm/aaaa"`).
 - **Nivel LÍNEA** (`seguimientos`, modelo `Seguimiento`): `estado_materiales` (select cerrado,
-  enum `EstadoMateriales`: `PEND. MATERIAL DE EMPAQUE` / `PEND. MATERIAL MATERIA PRIMA` /
-  `PEND. REQUISICION` / `PEND. ORDEN DE COMPRA` / `OC ENVIADA A PROVEEDOR`), `observaciones`
+  etiqueta en la UI "Estado"; enum `EstadoMateriales`: `PEND. MATERIAL DE EMPAQUE` /
+  `PEND. MATERIAL MATERIA PRIMA` / `PEND. REQUISICION` / `PEND. ORDEN DE COMPRA` /
+  `OC ENVIADA A PROVEEDOR` / `OK` / `EN INVENTARIO` / `PENDIENTE INGRESO OC` /
+  `DEVOLUCION CEDI` / `REPROCESO SUPER PACK`), `observaciones`
   (texto libre; antes `observaciones_plan`), `fecha_programa` (date), `inventario`.
   Derivado: `porcentaje_cumplimiento` = `inventario / cantidad × 100`.
+- **Toneladas/volumen/cajas por línea** (`PedidosPorLiberarQuery`, no persistidas):
+  `toneladas_linea = cantidad_pedida × factor_kg / 1000` (mostrado a 1 decimal);
+  `cajas_linea = cantidad_pedida / embalaje`; `volumen_linea = cajas_linea × volumen / 1.000.000`
+  (2 decimales). A nivel de pedido se suman (`toneladas_total`, `volumen_total`) y el
+  volumen total sugiere contenedor: `< 32 m³` → 20', `32–60 m³` → 40', `> 60 m³` → alerta
+  "Excede cubicaje". Ítem sin `embalaje`/`volumen` → volumen nulo + marca "sin volumen"
+  (mismo patrón que `sin_factor`/toneladas).
 - Estado de revisión del pedido: `REVISADO` si existe fila en `seguimiento_pedidos`, si no `POR REVISAR`.
 - El **correo de cargues** lista los pedidos con `seguimiento_pedidos.fecha_tentativa_cargue`.
 
@@ -123,6 +146,9 @@ npm run build
 | `GET /pedidos-liberar` | `pedidos/index` (barra de filtros compacta 1 fila + paginación + botón Importar/Sincronizar ERP) | `pedidos.ver` |
 | `GET /pedidos-liberar/{pedido}` | `pedidos/show` (form pedido + filtro por categoría + tabla líneas paginada con select estado materiales / observaciones / fecha programada / inventario) | `pedidos.ver` |
 | `GET /cargues/correo` | `cargues/correo` | `correo.generar` |
+| `GET /materiales` | `materiales/index` (gestión por ítem: filtra líneas del universo "por liberar" por estado de materiales; sin estado seleccionado no muestra nada, ítems sin estado asignado nunca aparecen) | `pedidos.ver` |
+| `GET /inventario` | `inventario/index` (reparto por ítem: Inventario, Total pedido, Faltante, Asignado, Disponible) | `seguimiento.editar` |
+| `GET /inventario/detalle` | `inventario/detalle` | `seguimiento.editar` |
 | `GET /admin/usuarios` | `admin/usuarios/index` (CRUD + reset clave) | `admin.usuarios` |
 | `GET /admin/roles` | `admin/roles/index` (CRUD + permisos) | `admin.roles` |
 | `GET /admin/permisos` | `admin/permisos/index` (matriz sólo lectura) | `admin.roles` |

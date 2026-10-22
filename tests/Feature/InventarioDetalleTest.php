@@ -35,7 +35,7 @@ class InventarioDetalleTest extends TestCase
         $this->actingAs($this->usuarioCon([Permisos::SEGUIMIENTO_EDITAR]))->get('/inventario/detalle')->assertOk();
     }
 
-    public function test_lista_filas_sin_totalizar(): void
+    public function test_lista_agrupada_por_item_y_lote(): void
     {
         $this->sembrar();
 
@@ -45,7 +45,42 @@ class InventarioDetalleTest extends TestCase
             ->assertSee('062139')
             ->assertSee('50070753-275')
             ->assertSee('062029')
-            ->assertSee('50070931-288');
+            ->assertSee('50070931-288')
+            // La ubicación (campo por bodega) ya no se muestra en esta tabla.
+            ->assertDontSee('02J0404A')
+            ->assertDontSee('02I0105D');
+    }
+
+    public function test_suma_la_cantidad_de_distintas_ubicaciones_del_mismo_lote(): void
+    {
+        InventarioSincboxDetalle::create([
+            'item' => '064025', 'warehouse' => '004', 'ubication' => '02J1001C',
+            'descripcion' => 'MERM DP PIÑA', 'lote' => '50070777-278', 'product_id' => 3,
+            'cantidad' => 3120, 'bloqueado' => false, 'creado' => '2026-10-16',
+        ]);
+        InventarioSincboxDetalle::create([
+            'item' => '064025', 'warehouse' => '004', 'ubication' => '02J0305B',
+            'descripcion' => 'MERM DP PIÑA', 'lote' => '50070777-278', 'product_id' => 3,
+            'cantidad' => 2400, 'bloqueado' => false, 'creado' => '2026-10-16',
+        ]);
+        InventarioSincboxDetalle::create([
+            'item' => '064025', 'warehouse' => '004', 'ubication' => '02I0101C',
+            'descripcion' => 'MERM DP PIÑA', 'lote' => '50070777-280', 'product_id' => 3,
+            'cantidad' => 2880, 'bloqueado' => false, 'creado' => '2026-10-16',
+        ]);
+
+        $comp = Volt::actingAs($this->usuarioCon([Permisos::SEGUIMIENTO_EDITAR]))
+            ->test('inventario.detalle')
+            ->set('item', '064025');
+
+        $filas = $comp->viewData('filas');
+        $this->assertSame(2, $filas->total());
+
+        $lote278 = $filas->firstWhere('lote', '50070777-278');
+        $this->assertEquals(5520, (float) $lote278->cantidad);
+
+        $lote280 = $filas->firstWhere('lote', '50070777-280');
+        $this->assertEquals(2880, (float) $lote280->cantidad);
     }
 
     public function test_filtra_por_item_y_lote(): void

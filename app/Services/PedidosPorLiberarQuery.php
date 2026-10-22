@@ -36,10 +36,50 @@ class PedidosPorLiberarQuery
                 'c.cliente',
                 'COALESCE(c.destino, "#N/D") as destino',
                 '(c.nit_cliente is null) as sin_cliente',
-                'p.factor_kg', 'p.categoria',
+                'p.factor_kg', 'p.categoria', 'p.embalaje', 'p.volumen',
                 '(l.cantidad_pedida * p.factor_kg / 1000) as toneladas_linea',
                 '(p.item is null) as sin_factor',
+                'CASE WHEN p.embalaje > 0 THEN (l.cantidad_pedida * 1.0 / p.embalaje) ELSE NULL END as cajas_linea',
+                'CASE WHEN p.embalaje > 0 THEN (l.cantidad_pedida * 1.0 / p.embalaje) * p.volumen / 1000000.0 ELSE NULL END as volumen_linea',
+                '(p.item is null or p.embalaje is null or p.embalaje <= 0 or p.volumen is null) as sin_volumen',
             ]));
+    }
+
+    /**
+     * Líneas (del universo "por liberar") cuyo estado de materiales coincide
+     * con el filtro dado. Sólo visual: usa INNER JOIN a `seguimientos`, así
+     * que los ítems sin ningún estado asignado nunca aparecen.
+     *
+     * @return LengthAwarePaginator<int, object>
+     */
+    public function lineasPorEstadoMateriales(string $estado, int $porPagina = 25): LengthAwarePaginator
+    {
+        return $this->baseQuery()
+            ->join('seguimientos as s', function ($join) {
+                $join->on('s.pedido', '=', 'l.pedido')->on('s.item', '=', 'l.item');
+            })
+            ->where('s.estado_materiales', $estado)
+            ->addSelect('s.observaciones', 's.fecha_programa')
+            ->orderBy('l.pedido')
+            ->orderBy('l.item')
+            ->paginate($porPagina);
+    }
+
+    /**
+     * Sugerencia de contenedor según el volumen total del pedido (m³):
+     * < 32 → 20', 32–60 → 40', > 60 → alerta de cubicaje excedido.
+     */
+    private function contenedorSugerido(?float $volumenM3): ?string
+    {
+        if ($volumenM3 === null) {
+            return null;
+        }
+
+        return match (true) {
+            $volumenM3 > 60 => 'Excede cubicaje',
+            $volumenM3 >= 32 => "Contenedor 40'",
+            default => "Contenedor 20'",
+        };
     }
 
     /**
@@ -71,6 +111,10 @@ class PedidosPorLiberarQuery
                 'SUM(l.cantidad_pedida) as cantidad_total',
                 'SUM(l.cantidad_pedida * p.factor_kg) / 1000 as toneladas_total',
                 'MAX(p.item is null) as toneladas_incompleto',
+                'SUM(CASE WHEN p.embalaje > 0 THEN (l.cantidad_pedida * 1.0 / p.embalaje) ELSE 0 END) as cajas_total',
+                'MAX(CASE WHEN p.item is null or p.embalaje is null or p.embalaje <= 0 THEN 1 ELSE 0 END) as cajas_incompleto',
+                'SUM(CASE WHEN p.embalaje > 0 THEN (l.cantidad_pedida * 1.0 / p.embalaje) * p.volumen / 1000000.0 ELSE 0 END) as volumen_total',
+                'MAX(CASE WHEN p.item is null or p.embalaje is null or p.embalaje <= 0 or p.volumen is null THEN 1 ELSE 0 END) as volumen_incompleto',
                 'SUM(sl.inventario) as inventario_total',
                 'CASE WHEN SUM(l.cantidad_pedida) > 0 AND SUM(sl.inventario) IS NOT NULL THEN SUM(sl.inventario) * 100.0 / SUM(l.cantidad_pedida) END as porcentaje_cumplimiento',
                 'MAX(sp.estado_seguimiento) as estado_seguimiento',
@@ -104,6 +148,9 @@ class PedidosPorLiberarQuery
             $fila->estado_revision = $fila->revisado ? 'REVISADO' : 'POR REVISAR';
             $fila->estado_seguimiento ??= 'Pendiente';
             $fila->alerta = $this->alerta($fila->estado_seguimiento);
+            $fila->cajas_total = round((float) $fila->cajas_total, 1);
+            $fila->volumen_total = round((float) $fila->volumen_total, 2);
+            $fila->contenedor_sugerido = $this->contenedorSugerido($fila->volumen_total);
 
             return $fila;
         });
@@ -137,12 +184,15 @@ class PedidosPorLiberarQuery
 
         $primera = $lineas->first();
         $sinFactor = $lineas->contains(fn ($l) => (bool) $l->sin_factor);
+        $sinVolumen = $lineas->contains(fn ($l) => (bool) $l->sin_volumen);
 
         $sp = DB::table('seguimiento_pedidos')->where('pedido', $pedido)->first();
         $estadoSeg = $sp->estado_seguimiento ?? 'Pendiente';
         $fechaTentativa = $sp->fecha_tentativa_cargue ?? null;
         $inventarioTotal = $lineas->sum(fn ($l) => (float) $l->inventario);
         $cantidadTotal = $lineas->sum(fn ($l) => (float) $l->cantidad_pedida);
+        $cajasTotal = round($lineas->sum(fn ($l) => (float) $l->cajas_linea), 1);
+        $volumenTotal = round($lineas->sum(fn ($l) => (float) $l->volumen_linea), 2);
 
         $totales = (object) [
             'pedido' => $pedido,
@@ -154,6 +204,10 @@ class PedidosPorLiberarQuery
             'cantidad_total' => $cantidadTotal,
             'toneladas_total' => round($lineas->sum(fn ($l) => (float) $l->toneladas_linea), 5),
             'toneladas_incompleto' => $sinFactor,
+            'cajas_total' => $cajasTotal,
+            'volumen_total' => $volumenTotal,
+            'volumen_incompleto' => $sinVolumen,
+            'contenedor_sugerido' => $this->contenedorSugerido($volumenTotal),
             'inventario_total' => $inventarioTotal ?: null,
             'porcentaje_cumplimiento' => $inventarioTotal > 0 && $cantidadTotal > 0 ? round($inventarioTotal / $cantidadTotal * 100, 2) : null,
             'estado_seguimiento' => $estadoSeg,

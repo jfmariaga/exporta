@@ -62,6 +62,31 @@ class ValidacionAsignacionInventarioTest extends TestCase
         $this->assertDatabaseHas('seguimientos', ['pedido' => 'B', 'item' => '001131', 'inventario' => 20]);
     }
 
+    public function test_resalta_en_rojo_cuando_el_disponible_no_alcanza_lo_pedido(): void
+    {
+        // Pedido pide 200, sólo hay 100 sincronizados en todo el pool: insuficiente.
+        InventarioSincbox::create(['item' => '001131', 'cantidad_total' => 100]);
+        $this->linea('A', '001131', 200);
+
+        $user = $this->usuarioCon([Permisos::PEDIDOS_VER, Permisos::SEGUIMIENTO_EDITAR]);
+
+        Volt::actingAs($user)
+            ->test('pedidos.show', ['pedido' => 'A'])
+            ->assertSee('text-red-600', false);
+    }
+
+    public function test_no_resalta_cuando_el_disponible_cubre_lo_pedido(): void
+    {
+        InventarioSincbox::create(['item' => '001131', 'cantidad_total' => 500]);
+        $this->linea('A', '001131', 200);
+
+        $user = $this->usuarioCon([Permisos::PEDIDOS_VER, Permisos::SEGUIMIENTO_EDITAR]);
+
+        Volt::actingAs($user)
+            ->test('pedidos.show', ['pedido' => 'A'])
+            ->assertDontSee('text-red-600', false);
+    }
+
     public function test_disponible_mostrado_es_global_no_excluye_el_propio_pedido(): void
     {
         // Pool completo (100) ya asignado por entero al propio pedido 'A':
@@ -75,7 +100,7 @@ class ValidacionAsignacionInventarioTest extends TestCase
 
         Volt::actingAs($user)
             ->test('pedidos.show', ['pedido' => 'A'])
-            ->assertSee('Disp.: 0,000');
+            ->assertSee('Disp.: 0');
 
         // Y sigue pudiendo guardar el mismo valor sin que el validador lo rechace.
         Volt::actingAs($user)
@@ -118,5 +143,31 @@ class ValidacionAsignacionInventarioTest extends TestCase
 
         $this->assertSame('en_reparto', $estados['001004']['estado']);
         $this->assertEquals(60, $estados['001004']['disponible']);
+    }
+
+    public function test_calcula_total_pedido_y_faltante_contra_el_inventario_sincronizado(): void
+    {
+        // El total pedido es la demanda completa (PL/PP activos), sin
+        // importar si ya se repartió inventario a esas líneas o no.
+        InventarioSincbox::create(['item' => '001002', 'cantidad_total' => 40]);
+        $this->linea('C', '001002', 100);
+        Seguimiento::create(['pedido' => 'C', 'item' => '001002', 'cantidad' => 100, 'inventario' => 30]);
+        $this->linea('F', '001002', 20);
+
+        $estados = app(DisponibilidadInventario::class)->estados()->keyBy('item');
+
+        $this->assertEquals(120, $estados['001002']['total_pedido']);
+        $this->assertEquals(80, $estados['001002']['faltante']);
+    }
+
+    public function test_faltante_es_cero_cuando_el_inventario_cubre_el_pedido(): void
+    {
+        InventarioSincbox::create(['item' => '001005', 'cantidad_total' => 200]);
+        $this->linea('G', '001005', 100);
+
+        $estados = app(DisponibilidadInventario::class)->estados()->keyBy('item');
+
+        $this->assertEquals(100, $estados['001005']['total_pedido']);
+        $this->assertEquals(0, $estados['001005']['faltante']);
     }
 }

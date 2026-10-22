@@ -148,7 +148,16 @@ new #[Layout('layouts.app')] class extends Component
                         <td class="num whitespace-nowrap">
                             <div class="inline-flex items-center gap-3">
                                 <button wire:click="editar({{ $c->id }})" class="btn-link">Editar</button>
-                                <button wire:click="eliminar({{ $c->id }})" wire:confirm="¿Eliminar al cliente {{ $c->nit_cliente }}?" class="btn-danger-link">Eliminar</button>
+                                <button type="button" x-data x-on:click="Swal.fire({
+                                            title: '¿Eliminar cliente?',
+                                            text: @js('¿Eliminar al cliente '.$c->nit_cliente.'?'),
+                                            icon: 'warning',
+                                            showCancelButton: true,
+                                            confirmButtonText: 'Eliminar',
+                                            cancelButtonText: 'Cancelar',
+                                            confirmButtonColor: '#dc2626',
+                                            reverseButtons: true,
+                                        }).then((r) => { if (r.isConfirmed) $wire.eliminar({{ $c->id }}) })" class="btn-danger-link">Eliminar</button>
                             </div>
                         </td>
                     </tr>

@@ -42,6 +42,14 @@
                     Pedidos por liberar
                 </a>
             @endcan
+            @can('pedidos.ver')
+                <a href="{{ route('materiales.index') }}" wire:navigate
+                   class="flex items-center gap-3 rounded-lg px-3 py-2 font-medium transition-colors
+                          {{ request()->routeIs('materiales.*') ? 'bg-brand-50 text-brand-800' : 'text-ink-600 hover:bg-ink-100 hover:text-ink-900' }}">
+                    <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 3H2l8 9.46V19l4 2v-8.54L22 3z"/></svg>
+                    Gestión por ítem
+                </a>
+            @endcan
             @can('correo.generar')
                 <a href="{{ route('cargues.correo') }}" wire:navigate
                    class="flex items-center gap-3 rounded-lg px-3 py-2 font-medium transition-colors

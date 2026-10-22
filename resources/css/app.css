@@ -45,6 +45,14 @@
     .num {
         @apply text-right tabular-nums;
     }
+    /* Variante compacta: tablas con muchas columnas numéricas, para aprovechar
+       el ancho disponible y reducir el scroll horizontal. */
+    .data-table--compact thead th {
+        @apply px-2.5 py-2.5 text-[10px];
+    }
+    .data-table--compact tbody td {
+        @apply px-2.5 py-2;
+    }
 
     /* Controles de formulario */
     .field {

@@ -149,7 +149,16 @@ new #[Layout('layouts.app')] class extends Component
                             <div class="inline-flex items-center gap-3">
                                 <button wire:click="editar({{ $rol->id }})" class="btn-link">Editar</button>
                                 @unless ($rol->protegido)
-                                    <button wire:click="eliminar({{ $rol->id }})" wire:confirm="¿Eliminar el rol {{ $rol->name }}?" class="btn-danger-link">Eliminar</button>
+                                    <button type="button" x-data x-on:click="Swal.fire({
+                                                title: '¿Eliminar rol?',
+                                                text: @js('¿Eliminar el rol '.$rol->name.'?'),
+                                                icon: 'warning',
+                                                showCancelButton: true,
+                                                confirmButtonText: 'Eliminar',
+                                                cancelButtonText: 'Cancelar',
+                                                confirmButtonColor: '#dc2626',
+                                                reverseButtons: true,
+                                            }).then((r) => { if (r.isConfirmed) $wire.eliminar({{ $rol->id }}) })" class="btn-danger-link">Eliminar</button>
                                 @endunless
                             </div>
                         </td>

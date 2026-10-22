@@ -83,7 +83,9 @@ new #[Layout('layouts.app')] class extends Component
                 <tr>
                     <th>Ítem</th>
                     <th>Descripción</th>
-                    <th class="!text-right">Cant. total</th>
+                    <th class="!text-right">Inventario</th>
+                    <th class="!text-right">Total pedido</th>
+                    <th class="!text-right">Faltante</th>
                     <th class="!text-right">Asignado</th>
                     <th class="!text-right">Disponible</th>
                     <th>Estado</th>
@@ -98,6 +100,14 @@ new #[Layout('layouts.app')] class extends Component
                         <td class="font-semibold text-ink-900">{{ $a['item'] }}</td>
                         <td>{{ $descripciones[$a['item']] ?? '—' }}</td>
                         <td class="num">{{ number_format($a['cantidad_total'], 0, ',', '.') }}</td>
+                        <td class="num">{{ number_format($a['total_pedido'], 0, ',', '.') }}</td>
+                        <td class="num">
+                            @if ($a['faltante'] > 0)
+                                <x-ui.badge color="red" title="El total pedido supera el inventario sincronizado">
+                                    -{{ number_format($a['faltante'], 0, ',', '.') }}
+                                </x-ui.badge>
+                            @else — @endif
+                        </td>
                         <td class="num">{{ number_format($a['asignado'], 0, ',', '.') }}</td>
                         <td class="num font-semibold">{{ number_format($a['disponible'], 0, ',', '.') }}</td>
                         <td><x-ui.badge :color="$color">{{ $etiqueta }}</x-ui.badge></td>
@@ -112,7 +122,7 @@ new #[Layout('layouts.app')] class extends Component
                     </tr>
                     @if ($detalleAbierto === $a['item'] && $a['detalle']->isNotEmpty())
                         <tr wire:key="inv-detalle-{{ $a['item'] }}">
-                            <td colspan="8" class="bg-ink-50">
+                            <td colspan="10" class="bg-ink-50">
                                 <div class="overflow-x-auto p-2">
                                     <table class="data-table">
                                         <thead>
@@ -143,7 +153,7 @@ new #[Layout('layouts.app')] class extends Component
                         </tr>
                     @endif
                 @empty
-                    <tr><td colspan="8" class="!py-8 text-center text-ink-400">Aún no hay inventario sincronizado.</td></tr>
+                    <tr><td colspan="10" class="!py-8 text-center text-ink-400">Aún no hay inventario sincronizado.</td></tr>
                 @endforelse
                 </tbody>
             </table>

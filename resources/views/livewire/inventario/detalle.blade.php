@@ -40,12 +40,23 @@ new #[Layout('layouts.app')] class extends Component
 
     public function with(): array
     {
+        // Agrupado por ítem + lote: suma la cantidad de las distintas
+        // ubicaciones/bodegas de un mismo lote en una sola fila.
         $filas = InventarioSincboxDetalle::query()
             ->when($this->item !== '', fn ($q) => $q->where('item', 'like', "%{$this->item}%"))
             ->when($this->lote !== '', fn ($q) => $q->where('lote', 'like', "%{$this->lote}%"))
             ->when($this->desde !== '', fn ($q) => $q->whereDate('creado', '>=', $this->desde))
             ->when($this->hasta !== '', fn ($q) => $q->whereDate('creado', '<=', $this->hasta))
-            ->orderByDesc('creado')
+            ->groupBy('item', 'lote')
+            ->selectRaw(implode(', ', [
+                'item', 'lote',
+                'MAX(descripcion) as descripcion',
+                'MAX(warehouse) as warehouse',
+                'SUM(cantidad) as cantidad',
+                'MAX(bloqueado) as bloqueado',
+                'MAX(creado) as creado',
+            ]))
+            ->orderByRaw('MAX(creado) desc')
             ->orderBy('item')
             ->paginate($this->porPagina);
 
@@ -98,7 +109,6 @@ new #[Layout('layouts.app')] class extends Component
                     <th>Ítem</th>
                     <th>Descripción</th>
                     <th>Bodega</th>
-                    <th>Ubicación</th>
                     <th>Lote</th>
                     <th class="!text-right">Cantidad</th>
                     <th>Bloqueado</th>
@@ -107,11 +117,10 @@ new #[Layout('layouts.app')] class extends Component
                 </thead>
                 <tbody>
                 @forelse ($filas as $f)
-                    <tr wire:key="det-{{ $f->id }}">
+                    <tr wire:key="det-{{ $f->item }}-{{ $f->lote }}">
                         <td class="font-semibold text-ink-900">{{ $f->item }}</td>
                         <td>{{ $f->descripcion ?? '—' }}</td>
                         <td>{{ $f->warehouse ?? '—' }}</td>
-                        <td>{{ $f->ubication ?? '—' }}</td>
                         <td>{{ $f->lote ?? '—' }}</td>
                         <td class="num">{{ number_format((float) $f->cantidad, 0, ',', '.') }}</td>
                         <td>
@@ -124,7 +133,7 @@ new #[Layout('layouts.app')] class extends Component
                         <td class="whitespace-nowrap">{{ $f->creado?->format('d/m/Y') ?? '—' }}</td>
                     </tr>
                 @empty
-                    <tr><td colspan="8" class="!py-8 text-center text-ink-400">Sin filas para ese filtro.</td></tr>
+                    <tr><td colspan="7" class="!py-8 text-center text-ink-400">Sin filas para ese filtro.</td></tr>
                 @endforelse
                 </tbody>
             </table>

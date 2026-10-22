@@ -201,8 +201,29 @@ new #[Layout('layouts.app')] class extends Component
             <div>
                 <div class="kv-label">Toneladas totales</div>
                 <div class="kv-value tabular-nums">
-                    {{ number_format((float) $totales->toneladas_total, 5, ',', '.') }}
+                    {{ number_format((float) $totales->toneladas_total, 1, ',', '.') }}
                     @if ($totales->toneladas_incompleto)<x-ui.badge color="amber">incompleto</x-ui.badge>@endif
+                </div>
+            </div>
+            <div>
+                <div class="kv-label">Cajas totales</div>
+                <div class="kv-value tabular-nums">{{ number_format((float) $totales->cajas_total, 1, ',', '.') }}</div>
+            </div>
+            <div>
+                <div class="kv-label">Volumen total (m³)</div>
+                <div class="kv-value tabular-nums">
+                    {{ number_format((float) $totales->volumen_total, 2, ',', '.') }}
+                    @if ($totales->volumen_incompleto)<x-ui.badge color="amber">incompleto</x-ui.badge>@endif
+                </div>
+            </div>
+            <div>
+                <div class="kv-label">Contenedor sugerido</div>
+                <div class="kv-value">
+                    @if ($totales->contenedor_sugerido === 'Excede cubicaje')
+                        <x-ui.badge color="red">{{ $totales->contenedor_sugerido }}</x-ui.badge>
+                    @elseif ($totales->contenedor_sugerido)
+                        {{ $totales->contenedor_sugerido }}
+                    @else — @endif
                 </div>
             </div>
             <div>
@@ -262,7 +283,9 @@ new #[Layout('layouts.app')] class extends Component
                     <th>Descripción</th>
                     <th class="!text-right">Cant. pedida</th>
                     <th class="!text-right">Toneladas</th>
-                    <th>Estado materiales</th>
+                    <th class="!text-right">Cajas</th>
+                    <th class="!text-right">Volumen m³</th>
+                    <th>Estado</th>
                     <th>Observaciones</th>
                     <th>Fecha programada</th>
                     <th class="!text-right">Inventario</th>
@@ -275,6 +298,9 @@ new #[Layout('layouts.app')] class extends Component
                         $inv = isset($lineasSeg[$l->item]['inventario']) && $lineasSeg[$l->item]['inventario'] !== null && $lineasSeg[$l->item]['inventario'] !== ''
                             ? (float) $lineasSeg[$l->item]['inventario'] : null;
                         $pct = $inv !== null && (float) $l->cantidad_pedida > 0 ? round($inv / (float) $l->cantidad_pedida * 100, 2) : null;
+                        $invFormateado = $inv !== null ? \App\Support\Numero::decimal($inv, 3) : '';
+                        $dispItem = (float) ($disponibles[$l->item] ?? 0);
+                        $dispInsuficiente = $dispItem < (float) $l->cantidad_pedida;
                     @endphp
                     <tr wire:key="lin-{{ $l->item }}">
                         <td class="font-semibold text-ink-900">{{ $l->item }}</td>
@@ -285,7 +311,14 @@ new #[Layout('layouts.app')] class extends Component
                         <td class="num whitespace-nowrap">{{ number_format((float) $l->cantidad_pedida, 0, ',', '.') }} <span class="text-xs text-ink-400">{{ $l->unidad_medida }}</span></td>
                         <td class="num whitespace-nowrap">
                             @if ($l->sin_factor)<x-ui.badge color="amber">sin factor</x-ui.badge>
-                            @else {{ number_format((float) $l->toneladas_linea, 5, ',', '.') }} @endif
+                            @else {{ number_format((float) $l->toneladas_linea, 1, ',', '.') }} @endif
+                        </td>
+                        <td class="num whitespace-nowrap">
+                            {{ $l->cajas_linea !== null ? number_format((float) $l->cajas_linea, 1, ',', '.') : '—' }}
+                        </td>
+                        <td class="num whitespace-nowrap">
+                            @if ($l->sin_volumen)<x-ui.badge color="amber">sin volumen</x-ui.badge>
+                            @else {{ number_format((float) $l->volumen_linea, 2, ',', '.') }} @endif
                         </td>
                         <td>
                             <select wire:model="lineasSeg.{{ $l->item }}.estado_materiales" @disabled(! $puedeEditar)
@@ -305,9 +338,14 @@ new #[Layout('layouts.app')] class extends Component
                                    class="field-sm w-36">
                         </td>
                         <td class="num">
-                            <input type="number" step="0.001" min="0" wire:model.live="lineasSeg.{{ $l->item }}.inventario" @disabled(! $puedeEditar)
+                            <input type="text" inputmode="decimal" value="{{ $invFormateado }}"
+                                   x-data="{ enviar: debounce((v) => $wire.set('lineasSeg.{{ $l->item }}.inventario', v), 300) }"
+                                   x-on:input="const r = formatoMilesInput($el.value); $el.value = r.mostrado; enviar(r.numerico)"
+                                   @disabled(! $puedeEditar)
                                    class="field-sm w-28 text-right" placeholder="—">
-                            <div class="mt-0.5 text-xs text-ink-400">Disp.: {{ number_format($disponibles[$l->item] ?? 0, 3, ',', '.') }}</div>
+                            <div @class(['mt-0.5 text-xs', 'text-red-600 font-semibold' => $dispInsuficiente, 'text-ink-400' => ! $dispInsuficiente])>
+                                Disp.: {{ \App\Support\Numero::decimal($dispItem, 3) }}
+                            </div>
                             @error('lineasSeg.'.$l->item.'.inventario') <p class="mt-0.5 text-xs text-red-600">{{ $message }}</p> @enderror
                         </td>
                         <td class="num">
@@ -317,7 +355,7 @@ new #[Layout('layouts.app')] class extends Component
                         </td>
                     </tr>
                 @empty
-                    <tr><td colspan="9" class="!py-8 text-center text-ink-400">Sin líneas para esa categoría.</td></tr>
+                    <tr><td colspan="11" class="!py-8 text-center text-ink-400">Sin líneas para esa categoría.</td></tr>
                 @endforelse
                 </tbody>
             </table>

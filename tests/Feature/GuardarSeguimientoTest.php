@@ -79,6 +79,20 @@ class GuardarSeguimientoTest extends TestCase
         $this->assertDatabaseHas('seguimientos', ['pedido' => '179', 'item' => '001131', 'estado_materiales' => 'OC ENVIADA A PROVEEDOR']);
     }
 
+    public function test_acepta_los_nuevos_valores_de_estado(): void
+    {
+        $this->lineas();
+        $user = $this->usuarioCon([Permisos::PEDIDOS_VER, Permisos::SEGUIMIENTO_EDITAR]);
+
+        Volt::actingAs($user)
+            ->test('pedidos.show', ['pedido' => '179'])
+            ->set('lineasSeg.001131.estado_materiales', 'EN INVENTARIO')
+            ->call('guardarLineas')
+            ->assertHasNoErrors();
+
+        $this->assertDatabaseHas('seguimientos', ['pedido' => '179', 'item' => '001131', 'estado_materiales' => 'EN INVENTARIO']);
+    }
+
     public function test_estado_materiales_rechaza_valor_fuera_de_la_lista(): void
     {
         $this->lineas();

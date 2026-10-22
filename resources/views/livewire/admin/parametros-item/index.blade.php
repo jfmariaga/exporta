@@ -204,9 +204,17 @@ new #[Layout('layouts.app')] class extends Component
 
     <x-ui.card flush>
         <div class="overflow-x-auto">
-            <table class="data-table">
+            <table class="data-table data-table--compact">
                 <thead>
-                <tr><th>Ítem</th><th>Descripción</th><th>Categoría</th><th class="num">Factor kg</th><th class="!text-right">Acciones</th></tr>
+                <tr>
+                    <th>Ítem</th>
+                    <th>Descripción</th>
+                    <th>Categoría</th>
+                    <th class="num">Factor kg</th>
+                    <th class="num">Embalaje</th>
+                    <th class="num">Volumen</th>
+                    <th class="!text-right">Acciones</th>
+                </tr>
                 </thead>
                 <tbody>
                 @foreach ($parametros as $p)
@@ -214,11 +222,22 @@ new #[Layout('layouts.app')] class extends Component
                         <td class="num">{{ $p->item }}</td>
                         <td class="font-medium text-ink-900">{{ $p->descripcion ?: '—' }}</td>
                         <td>{{ $p->categoria ?: '—' }}</td>
-                        <td class="num">{{ $p->factor_kg !== null ? number_format((float) $p->factor_kg, 6) : '—' }}</td>
+                        <td class="num">{{ \App\Support\Numero::decimal($p->factor_kg !== null ? (float) $p->factor_kg : null, 6) }}</td>
+                        <td class="num">{{ $p->embalaje !== null ? number_format((float) $p->embalaje, 0, ',', '.') : '—' }}</td>
+                        <td class="num">{{ \App\Support\Numero::decimal($p->volumen !== null ? (float) $p->volumen : null, 4) }}</td>
                         <td class="num whitespace-nowrap">
                             <div class="inline-flex items-center gap-3">
                                 <button wire:click="editar({{ $p->id }})" class="btn-link">Editar</button>
-                                <button wire:click="eliminar({{ $p->id }})" wire:confirm="¿Eliminar el ítem {{ $p->item }}?" class="btn-danger-link">Eliminar</button>
+                                <button type="button" x-data x-on:click="Swal.fire({
+                                            title: '¿Eliminar parámetro?',
+                                            text: @js('¿Eliminar el ítem '.$p->item.'?'),
+                                            icon: 'warning',
+                                            showCancelButton: true,
+                                            confirmButtonText: 'Eliminar',
+                                            cancelButtonText: 'Cancelar',
+                                            confirmButtonColor: '#dc2626',
+                                            reverseButtons: true,
+                                        }).then((r) => { if (r.isConfirmed) $wire.eliminar({{ $p->id }}) })" class="btn-danger-link">Eliminar</button>
                             </div>
                         </td>
                     </tr>

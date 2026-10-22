@@ -13,6 +13,11 @@ enum EstadoMateriales: string
     case PendRequisicion = 'PEND. REQUISICION';
     case PendOrdenCompra = 'PEND. ORDEN DE COMPRA';
     case OcEnviadaProveedor = 'OC ENVIADA A PROVEEDOR';
+    case Ok = 'OK';
+    case EnInventario = 'EN INVENTARIO';
+    case PendienteIngresoOc = 'PENDIENTE INGRESO OC';
+    case DevolucionCedi = 'DEVOLUCION CEDI';
+    case ReprocesoSuperPack = 'REPROCESO SUPER PACK';
 
     /** @return list<string> */
     public static function valores(): array

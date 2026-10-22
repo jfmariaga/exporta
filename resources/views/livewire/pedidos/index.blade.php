@@ -167,19 +167,22 @@ new #[Layout('layouts.app')] class extends Component
 
     <x-ui.card flush>
         <div class="max-h-[70vh] overflow-auto rounded-xl">
-            <table class="data-table">
+            <table class="data-table data-table--compact">
                 <thead>
                 <tr>
                     <th>Pedido</th>
                     <th>Cliente</th>
                     <th>Destino</th>
-                    <th>Fecha solicitud</th>
+                    <th>F. solicitud</th>
                     <th class="!text-right">Cantidad</th>
                     <th class="!text-right">Toneladas</th>
+                    <th class="!text-right">Cajas</th>
+                    <th class="!text-right">Volumen m³</th>
+                    <th>Contenedor</th>
                     <th class="!text-right">Inventario</th>
                     <th class="!text-right">% Cumpl.</th>
                     <th>Estado</th>
-                    <th>Fecha tent.</th>
+                    <th>F. tent.</th>
                     <th>Seguimiento</th>
                     <th>Revisión</th>
                 </tr>
@@ -201,8 +204,23 @@ new #[Layout('layouts.app')] class extends Component
                         <td class="whitespace-nowrap">{{ $p->fecha_solicitud ? \Illuminate\Support\Carbon::parse($p->fecha_solicitud)->format('d/m/Y') : '—' }}</td>
                         <td class="num">{{ number_format((float) $p->cantidad_total, 0, ',', '.') }}</td>
                         <td class="num whitespace-nowrap">
-                            {{ number_format((float) $p->toneladas_total, 3, ',', '.') }}
-                            @if ($p->toneladas_incompleto)<x-ui.badge color="amber" class="ml-1">incompleto</x-ui.badge>@endif
+                            {{ number_format((float) $p->toneladas_total, 1, ',', '.') }}
+                            @if ($p->toneladas_incompleto)<x-ui.badge color="amber" class="ml-1" title="Falta factor kg en algún ítem">!</x-ui.badge>@endif
+                        </td>
+                        <td class="num whitespace-nowrap">
+                            {{ number_format((float) $p->cajas_total, 1, ',', '.') }}
+                            @if ($p->cajas_incompleto)<x-ui.badge color="amber" class="ml-1" title="Falta embalaje en algún ítem">!</x-ui.badge>@endif
+                        </td>
+                        <td class="num whitespace-nowrap">
+                            {{ number_format((float) $p->volumen_total, 2, ',', '.') }}
+                            @if ($p->volumen_incompleto)<x-ui.badge color="amber" class="ml-1" title="Falta embalaje o volumen en algún ítem">!</x-ui.badge>@endif
+                        </td>
+                        <td class="whitespace-nowrap">
+                            @if ($p->contenedor_sugerido === 'Excede cubicaje')
+                                <x-ui.badge color="red" title="Excede cubicaje">Excede</x-ui.badge>
+                            @elseif ($p->contenedor_sugerido)
+                                {{ str_replace('Contenedor ', '', $p->contenedor_sugerido) }}
+                            @else — @endif
                         </td>
                         <td class="num">{{ $p->inventario_total !== null ? number_format((float) $p->inventario_total, 0, ',', '.') : '—' }}</td>
                         <td class="num">
@@ -222,7 +240,7 @@ new #[Layout('layouts.app')] class extends Component
                         </td>
                     </tr>
                 @empty
-                    <tr><td colspan="12" class="!py-10 text-center text-ink-400">Sin pedidos por liberar.</td></tr>
+                    <tr><td colspan="15" class="!py-10 text-center text-ink-400">Sin pedidos por liberar.</td></tr>
                 @endforelse
                 </tbody>
             </table>

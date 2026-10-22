@@ -178,6 +178,8 @@ class SincronizarInventarioTest extends TestCase
             ->test('inventario.index')
             ->call('sincronizar')
             ->assertOk()
-            ->assertSee('Sincronización con SyncBox completada.');
+            // El mensaje se dispara como toast de SweetAlert2 (Blade @js), no como
+            // texto plano en el HTML; se verifica el fragmento ASCII sin acentos.
+            ->assertSee('con SyncBox completada.');
     }
 }

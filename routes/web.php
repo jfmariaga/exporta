@@ -29,6 +29,9 @@ Route::middleware(['auth', 'activo'])->group(function () {
     Volt::route('/cargues/correo', 'cargues.correo')
         ->middleware('can:'.Permisos::CORREO_GENERAR)->name('cargues.correo');
 
+    Volt::route('/materiales', 'materiales.index')
+        ->middleware('can:'.Permisos::PEDIDOS_VER)->name('materiales.index');
+
     Volt::route('/inventario', 'inventario.index')
         ->middleware('can:'.Permisos::SEGUIMIENTO_EDITAR)->name('inventario.index');
     Volt::route('/inventario/detalle', 'inventario.detalle')

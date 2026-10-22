@@ -275,7 +275,16 @@ new #[Layout('layouts.app')] class extends Component
                                 <button wire:click="editar({{ $u->id }})" class="btn-link">Editar</button>
                                 <button wire:click="toggleActivo({{ $u->id }})" class="btn-link !text-ink-600">{{ $u->activo ? 'Desactivar' : 'Activar' }}</button>
                                 <button wire:click="pedirReset({{ $u->id }})" class="btn-link !text-ink-600">Clave</button>
-                                <button wire:click="eliminar({{ $u->id }})" wire:confirm="¿Eliminar a {{ $u->name }}?" class="btn-danger-link">Eliminar</button>
+                                <button type="button" x-data x-on:click="Swal.fire({
+                                            title: '¿Eliminar usuario?',
+                                            text: @js('¿Eliminar a '.$u->name.'?'),
+                                            icon: 'warning',
+                                            showCancelButton: true,
+                                            confirmButtonText: 'Eliminar',
+                                            cancelButtonText: 'Cancelar',
+                                            confirmButtonColor: '#dc2626',
+                                            reverseButtons: true,
+                                        }).then((r) => { if (r.isConfirmed) $wire.eliminar({{ $u->id }}) })" class="btn-danger-link">Eliminar</button>
                             </div>
                         </td>
                     </tr>

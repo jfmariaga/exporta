@@ -4,6 +4,7 @@ namespace App\Services\Inventario;
 
 use App\Models\InventarioSincbox;
 use App\Models\InventarioSincboxDetalle;
+use App\Models\LineaPedido;
 use App\Models\Seguimiento;
 use App\Support\EstadosPedido;
 use Illuminate\Support\Carbon;
@@ -59,7 +60,7 @@ class DisponibilidadInventario
      * asignado a pedidos pendientes). Ítems sin existencia ni asignación
      * no se listan (nada que reportar).
      *
-     * @return Collection<int, array{item:string, cantidad_total:float, asignado:float, disponible:float, estado:string, sincronizado_en:?Carbon, detalle:Collection}>
+     * @return Collection<int, array{item:string, cantidad_total:float, total_pedido:float, faltante:float, asignado:float, disponible:float, estado:string, sincronizado_en:?Carbon, detalle:Collection}>
      */
     public function estados(): Collection
     {
@@ -75,14 +76,25 @@ class DisponibilidadInventario
             ->selectRaw('seguimientos.item as item, SUM(seguimientos.inventario) as asignado')
             ->pluck('asignado', 'item');
 
+        // Demanda total por ítem: toda la cantidad pedida en pedidos PL/PP
+        // pendientes (independiente de si ya se repartió inventario o no).
+        $totalPedidoPorItem = LineaPedido::query()
+            ->where('activo', true)
+            ->whereIn('estado', EstadosPedido::POR_LIBERAR)
+            ->groupBy('item')
+            ->selectRaw('item, SUM(cantidad_pedida) as total_pedido')
+            ->pluck('total_pedido', 'item');
+
         $detallePorItem = InventarioSincboxDetalle::all()->groupBy('item');
         $tolerancia = 0.0005;
 
         return InventarioSincbox::all()
-            ->map(function (InventarioSincbox $inv) use ($asignadoPorItem, $detallePorItem, $tolerancia) {
+            ->map(function (InventarioSincbox $inv) use ($asignadoPorItem, $totalPedidoPorItem, $detallePorItem, $tolerancia) {
                 $total = (float) $inv->cantidad_total;
                 $asignado = (float) ($asignadoPorItem[$inv->item] ?? 0);
                 $disponible = $total - $asignado;
+                $totalPedido = (float) ($totalPedidoPorItem[$inv->item] ?? 0);
+                $faltante = max(0.0, $totalPedido - $total);
 
                 if ($total <= $tolerancia && $asignado <= $tolerancia) {
                     return null;
@@ -98,6 +110,8 @@ class DisponibilidadInventario
                 return [
                     'item' => $inv->item,
                     'cantidad_total' => $total,
+                    'total_pedido' => $totalPedido,
+                    'faltante' => $faltante,
                     'asignado' => $asignado,
                     'disponible' => $disponible,
                     'estado' => $estado,
