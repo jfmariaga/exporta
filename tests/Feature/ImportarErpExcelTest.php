@@ -18,14 +18,16 @@ class ImportarErpExcelTest extends TestCase
 {
     use ConstruyeExcelErp, CreaUsuarios, RefreshDatabase;
 
-    public function test_carga_las_tres_hojas(): void
+    public function test_carga_la_hoja_de_lineas(): void
     {
         app(ImportadorErp::class)->importar($this->excelErp());
 
-        $this->assertSame(2, DB::table('clientes')->count());
-        $this->assertSame(2, DB::table('parametros_item')->count());
         $this->assertSame(5, DB::table('lineas_pedido')->count());
         $this->assertDatabaseHas('lineas_pedido', ['pedido' => '179', 'item' => '001131']);
+        // clientes/parametros_item son maestros manuales (UI admin/clientes,
+        // admin/parametros-item): la importación ya no los toca.
+        $this->assertSame(0, DB::table('clientes')->count());
+        $this->assertSame(0, DB::table('parametros_item')->count());
     }
 
     public function test_es_idempotente(): void
@@ -35,8 +37,6 @@ class ImportarErpExcelTest extends TestCase
         app(ImportadorErp::class)->importar($ruta);
 
         $this->assertSame(5, DB::table('lineas_pedido')->count());
-        $this->assertSame(2, DB::table('clientes')->count());
-        $this->assertSame(2, DB::table('parametros_item')->count());
     }
 
     public function test_conserva_el_seguimiento_al_reimportar(): void
@@ -71,7 +71,7 @@ class ImportarErpExcelTest extends TestCase
 
     public function test_hoja_invalida_lanza_error_y_no_deja_datos(): void
     {
-        $malo = $this->excelErp(['parametros' => [['ColumnaRara'], ['x']]]);
+        $malo = $this->excelErp(['lineas' => [['ColumnaRara'], ['x']]]);
 
         try {
             app(ImportadorErp::class)->importar($malo);
@@ -81,7 +81,6 @@ class ImportarErpExcelTest extends TestCase
         }
 
         $this->assertSame(0, DB::table('lineas_pedido')->count());
-        $this->assertSame(0, DB::table('clientes')->count());
     }
 
     private function archivoFake(): UploadedFile

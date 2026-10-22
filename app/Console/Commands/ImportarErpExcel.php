@@ -10,7 +10,7 @@ class ImportarErpExcel extends Command
 {
     protected $signature = 'erp:importar {ruta : Ruta al archivo .xlsx del ERP}';
 
-    protected $description = 'Importa las hojas PedidosVenta/Clientes/Parametros del Excel del ERP a MySQL (idempotente).';
+    protected $description = 'Importa la hoja PedidosVenta/"Pedidos Liberar" del Excel del ERP a lineas_pedido (idempotente).';
 
     public function handle(ImportadorErp $importador): int
     {

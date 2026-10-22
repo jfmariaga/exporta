@@ -11,10 +11,12 @@ use PhpOffice\PhpSpreadsheet\Shared\Date as ExcelDate;
 use RuntimeException;
 
 /**
- * Fuente ERP "importar Excel": carga las hojas PedidosVenta/"Pedidos Liberar",
- * Clientes y Parametros del archivo a las tablas espejo de MySQL. Idempotente
- * (upsert por clave natural) y transaccional. Nunca toca `seguimientos` ni
- * `seguimiento_pedidos`.
+ * Fuente ERP "importar Excel": carga la hoja PedidosVenta/"Pedidos Liberar"
+ * del archivo a `lineas_pedido`. Idempotente (upsert por clave natural) y
+ * transaccional. Nunca toca `seguimientos` ni `seguimiento_pedidos`.
+ *
+ * `clientes` y `parametros_item` son maestros manuales que se gestionan
+ * desde la UI (admin/clientes, admin/parametros-item) y ya no se tocan aquí.
  *
  * La escritura de `lineas_pedido` la delega en {@see LineasPedidoSync}, que
  * comparte con la fuente "consulta directa" ({@see ConsultaDirectaErp}).
@@ -44,36 +46,8 @@ class ImportadorErp
         'usuario' => 'usuario',
     ];
 
-    private const MAPA_CLIENTES = [
-        'nitcliente' => 'nit_cliente',
-        'cliente' => 'cliente',
-        'destino' => 'destino',
-    ];
-
-    private const MAPA_PARAMETROS = [
-        'item' => 'item',
-        'descripcion' => 'descripcion',
-        'factorkg' => 'factor_kg',
-        'categoria' => 'categoria',
-        'embalaje' => 'embalaje',
-        'volumen' => 'volumen',
-        'tendidos' => 'num_tendidos',
-        'cajaspallet' => 'cajas_pallet',
-        'alturacaja' => 'altura_caja',
-        'cajaspornivel' => 'cajas_por_nivel',
-    ];
-
     private const FECHAS_LINEAS = [
         'fecha_elaboracion', 'fecha_requerida', 'fecha_despacho', 'fecha_ultimo_movimiento',
-    ];
-
-    /** Columnas numéricas por tabla: valores no numéricos (#REF!, #N/A, texto) se guardan como null. */
-    private const NUMERICAS = [
-        'parametros_item' => [
-            'factor_kg', 'embalaje', 'volumen', 'num_tendidos',
-            'cajas_pallet', 'altura_caja', 'cajas_por_nivel',
-        ],
-        'clientes' => [],
     ];
 
     /**
@@ -95,69 +69,16 @@ class ImportadorErp
         }
 
         $hojaLineas = $hojas['pedidosventa'] ?? $hojas['pedidosliberar'] ?? null;
-        $hojaClientes = $hojas['clientes'] ?? null;
-        $hojaParametros = $hojas['parametros'] ?? null;
 
         if ($hojaLineas === null) {
             throw new RuntimeException("Falta la hoja 'PedidosVenta' o 'Pedidos Liberar'.");
         }
-        if ($hojaClientes === null) {
-            throw new RuntimeException("Falta la hoja 'Clientes'.");
-        }
-        if ($hojaParametros === null) {
-            throw new RuntimeException("Falta la hoja 'Parametros'.");
-        }
 
-        return DB::transaction(function () use ($hojaLineas, $hojaClientes, $hojaParametros) {
+        return DB::transaction(function () use ($hojaLineas) {
             return [
-                'Clientes' => $this->cargarSimple('clientes', $hojaClientes, self::MAPA_CLIENTES, 'nit_cliente'),
-                'Parametros' => $this->cargarSimple('parametros_item', $hojaParametros, self::MAPA_PARAMETROS, 'item'),
                 'PedidosVenta' => $this->cargarLineas($hojaLineas),
             ];
         });
-    }
-
-    /**
-     * @param  list<list<mixed>>  $filas
-     * @param  array<string,string>  $mapa
-     * @return array{insertadas:int, actualizadas:int, desactivadas:int}
-     */
-    private function cargarSimple(string $tabla, array $filas, array $mapa, string $clave): array
-    {
-        [$indices, $faltantes] = $this->resolverColumnas($filas, $mapa);
-        if ($faltantes !== []) {
-            throw new RuntimeException("Hoja de '{$tabla}': faltan columnas ".implode(', ', $faltantes));
-        }
-
-        $registros = [];
-        foreach (array_slice($filas, 1) as $fila) {
-            $registro = $this->mapearFila($fila, $indices, $tabla);
-            if ($registro === null || ($registro[$clave] ?? '') === '') {
-                continue;
-            }
-            foreach (self::NUMERICAS[$tabla] ?? [] as $col) {
-                if (array_key_exists($col, $registro)) {
-                    $registro[$col] = $this->aNumero($registro[$col]);
-                }
-            }
-            $registro['updated_at'] = now();
-            $registro['created_at'] = now();
-            $registros[$registro[$clave]] = $registro;
-        }
-
-        $antes = DB::table($tabla)->count();
-        foreach (array_chunk(array_values($registros), 500) as $lote) {
-            DB::table($tabla)->upsert($lote, [$clave], array_values(array_diff(
-                array_keys($lote[0]), [$clave, 'created_at']
-            )));
-        }
-        $despues = DB::table($tabla)->count();
-
-        return [
-            'insertadas' => max(0, $despues - $antes),
-            'actualizadas' => count($registros) - max(0, $despues - $antes),
-            'desactivadas' => 0,
-        ];
     }
 
     /**

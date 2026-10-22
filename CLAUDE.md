@@ -47,7 +47,9 @@ administración de usuarios, roles y permisos.
   (fuente `excel`) o `erp:sincronizar` (fuente `directo`, SQL Server); ambos vía
   `App\Services\Erp\LineasPedidoSync` (idempotente, upsert por `(pedido,item)`, "todas
   inactivas → upsert", aborta si el origen da 0 filas, no toca las tablas de seguimiento).
-  `clientes` y `parametros_item` siempre salen del Excel.
+  `clientes` y `parametros_item` son **maestros manuales**: el usuario funcional los crea,
+  edita y elimina desde la UI (`/admin/clientes`, `/admin/parametros-item`); ningún comando
+  de importación/sincronización los toca (ver sección "Maestros manuales" más abajo).
 - **Autorización por permiso, no por rol**: rutas con `can:<permiso>`; los componentes Livewire
   revalidan con `abort_unless(... ->can(...))` en cada acción.
 - Todo cambio de seguimiento registra `actualizado_por` + timestamp.
@@ -76,9 +78,11 @@ Roles base sembrados: `Administrador` (todos, protegido), `Planeador`
 
 ## Datos fuente (referencia)
 
-- `Q:\Consulta SQL Pedidos-Despachos.xlsx` — hojas `PedidosVenta` (líneas de pedido del ERP),
-  `Clientes` (NIT → cliente → destino/país), `Parametros` (item → `Factor kg` + embalaje).
-  La consulta original es Power Query → SQL Server `panalsrvdb`/`panalsas` →
+- `Q:\Consulta SQL Pedidos-Despachos.xlsx` — hoja `PedidosVenta` (líneas de pedido del ERP).
+  Históricamente traía también `Clientes` (NIT → cliente → destino/país) y `Parametros`
+  (item → `Factor kg` + embalaje), pero esas dos ya no se importan desde aquí (ver "Maestros
+  manuales" más abajo); la estructura de esas hojas sigue sirviendo de referencia para los
+  campos del CRUD en la app. La consulta original es Power Query → SQL Server `panalsrvdb`/`panalsas` →
   `OPENQUERY(LOGGROPDN, ...)` contra Oracle (compañía `'01'`, `pedtipocons='0542'`,
   `peeclasdocu='PEVE'`). La variante "Pedidos PL" añade `ESTADO in ('PL','PP')` e
   `ITEM not like '7%'`.
@@ -122,13 +126,16 @@ npm run build
 | `GET /admin/usuarios` | `admin/usuarios/index` (CRUD + reset clave) | `admin.usuarios` |
 | `GET /admin/roles` | `admin/roles/index` (CRUD + permisos) | `admin.roles` |
 | `GET /admin/permisos` | `admin/permisos/index` (matriz sólo lectura) | `admin.roles` |
+| `GET /admin/clientes` | `admin/clientes/index` (CRUD de NIT → cliente → destino) | `admin.usuarios` |
+| `GET /admin/parametros-item` | `admin/parametros-item/index` (CRUD de ítem → factor kg + embalaje) | `admin.usuarios` |
 
 `GET /dashboard` → redirige a `pedidos.index` (Breeze lo usa tras el login).
 
 ## Estado de implementación (2026-08-28)
 
 Ambas features **implementadas y verificadas** contra el Excel real y MySQL, sobre
-**Breeze + Livewire 3 (Volt)**. `php artisan test` → **75 passed**. `vendor/bin/pint --test` → passed.
+**Breeze + Livewire 3 (Volt)**. `php artisan test` → **103 passed** (2026-10-22).
+`vendor/bin/pint --test` → passed.
 
 Añadido después: fuente ERP `directo` (SQL Server, `erp:sincronizar`) con `LineasPedidoSync`
 compartido — implementado y con pruebas (filas del ERP simuladas), **sin probar contra el
@@ -171,6 +178,101 @@ correo de cargues; CRUD de usuarios/roles.
 - **Rol**: `App\Models\Role` extiende el de spatie sólo para castear `protegido` a bool;
   `config/permission.php` apunta a ese modelo.
 - **Entorno**: `extension=zip` habilitado en el `php.ini` de Laragon (backup `php.ini.bak-claude`).
+
+## Integración remota para Hostinger — API puente `api-datos-panal` (2026-10-16)
+
+Al subir esta app a Hostinger, el hosting no tiene acceso a la red interna de
+la planta (`192.168.80.x`), así que las conexiones directas a SQL Server
+(ERP) y Postgres (SyncBox/inventario) dejan de funcionar. Solución: un
+proyecto Laravel **nuevo y separado**, `api-datos-panal`
+(`C:\laragon\www\api-datos-panal` en local; se despliega en
+`192.168.80.52`, XAMPP, PHP 8.0 — mismo stack/patrón que el proyecto
+hermano `api-certificados-panal` que ya corre ahí: Laravel 9, Sanctum,
+`"platform":{"php":"8.0.2"}` fijado en `composer.json` para que Composer
+resuelva igual que en el servidor real).
+
+- Expone dos endpoints de sólo lectura detrás de `auth:sanctum` (token fijo
+  tipo API key, igual que `api-certificados-panal`):
+  `GET /api/erp/pedidos-pl` y `GET /api/inventario/existencias` — corren
+  exactamente las mismas consultas fijas que ya usa esta app
+  (`App\Support\ConsultasErp`/`ConsultasInventario`, copiadas ahí).
+- En esta app: `config/erp.php` y `config/inventario.php` tienen un flag
+  `modo` (`db` = conexión directa de siempre; `api` = vía el puente), más
+  `api_url`/`api_token`. El cambio está aislado en `filas()` de
+  `App\Services\Erp\ConsultaDirectaErp` y
+  `App\Services\Inventario\ConsultaExistenciasSyncBox` — el resto de la
+  sincronización, validación de reparto y UI no se tocó.
+- Rutas públicas del lado de la planta (ya expuesto por IP pública con
+  port-forward, mismo esquema que `api-certificados-panal`):
+  interna `http://192.168.80.52/api-datos-panal/public`, pública
+  `http://201.234.65.70/api-datos-panal/public` (o el hostname interno de
+  AD `panalsrvapp`, que **sólo resuelve dentro de la red de la planta** —
+  no sirve para Hostinger).
+
+**Verificado funcionando de punta a punta por la red interna**: con
+`ERP_MODO=api`/`INVENTARIO_MODO=api` apuntando a la URL interna,
+`erp:sincronizar`/`inventario:sincronizar` traen los mismos datos reales
+que en modo `db` (185 líneas ERP; 25 ítems + 60 filas de inventario).
+
+**Bloqueado para Hostinger**: desde una sesión SSH real en Hostinger,
+`curl` contra `http://201.234.65.70/...` da `Connection timed out` en el
+*connect* (ni llega a Apache) — y pasa igual con `api-certificados-panal`
+(el proyecto hermano que ya funcionaba), así que **no es un problema de
+`api-datos-panal` ni de este código**: el puerto 80 de esa IP pública no
+está respondiendo desde internet ahora mismo, para ningún proyecto.
+Pendiente de TI/redes de la planta: confirmar si la IP pública sigue
+siendo esa, si el port-forward del puerto 80 → `192.168.80.52` sigue
+activo, o si el ISP está bloqueando el puerto entrante.
+
+**Para retomar** (objetivo: lunes 2026-10-19): en cuanto redes confirme que
+el puerto 80 responde desde afuera, sólo falta cambiar
+`ERP_API_URL`/`INVENTARIO_API_URL` en el `.env` de Hostinger a la URL
+pública correcta y correr `php artisan config:clear` (+ `config:cache` si
+aplica) — no hace falta tocar código, ya está probado.
+
+### Maestros manuales (`clientes`/`parametros_item`): CRUD en la app (2026-10-22)
+
+Bug original (2026-10-21): en Hostinger la lista no mostraba `destino`
+(quedaba en `#N/D`) y las toneladas salían vacías/null, aunque en local sí
+funcionaba. Causa: `clientes` y `parametros_item` son datos **manuales**
+(no vienen de SQL Server) y sólo las llenaba `erp:importar` — comando que
+en Hostinger nunca se corre porque ahí sólo se usa `erp:sincronizar` (modo
+`api`, vía `api-datos-panal`), que únicamente toca `lineas_pedido`.
+
+Primer arreglo intentado (2026-10-21, **descartado**): republicar/releer
+esas dos tablas a través de nuevos endpoints en el puente
+`api-datos-panal` (`App\Services\Erp\MaestrosSync` +
+`maestros:publicar`/`maestros:sincronizar`). Se decidió no seguir por ahí:
+quedaba atado a que el puente estuviera accesible y migrado, y seguía
+dependiendo de volver a correr `erp:importar` con el Excel cada vez que
+cambiara un cliente o un ítem.
+
+**Arreglo definitivo**: `clientes` y `parametros_item` pasan a ser
+**gestionadas 100% desde la UI** por el usuario funcional de planeación,
+sin depender de ningún import ni de la red interna:
+
+- `GET /admin/clientes` (`admin/clientes/index`) y
+  `GET /admin/parametros-item` (`admin/parametros-item/index`) — CRUD
+  completo (crear/editar/eliminar), con el mismo patrón de los demás
+  módulos admin (`x-ui.page`/`x-ui.card`, paginación, búsqueda). Gated por
+  el permiso `admin.usuarios` (igual que el CRUD de usuarios).
+- `App\Services\ImportadorErp` (`erp:importar`) dejó de leer/requerir las
+  hojas `Clientes`/`Parametros` del Excel; sólo importa `PedidosVenta` a
+  `lineas_pedido`. Las constantes `MAPA_CLIENTES`/`MAPA_PARAMETROS` y el
+  método `cargarSimple()` se eliminaron.
+- Se revirtieron y eliminaron `App\Services\Erp\MaestrosSync`, los
+  comandos `maestros:publicar`/`maestros:sincronizar` y el `Schedule::`
+  correspondiente en `routes/console.php` (nunca llegaron a desplegarse).
+  El puente `api-datos-panal` sigue sirviendo `lineas_pedido` (`ERP_MODO=api`)
+  e inventario (`INVENTARIO_MODO=api`) sin cambios — sólo dejó de usarse
+  para estas dos tablas.
+- Efecto práctico: ya no hace falta correr `erp:importar` nunca más (ni en
+  local ni en Hostinger) sólo para mantener al día clientes/ítems; cada
+  entorno (local y Hostinger, bases de datos separadas) mantiene sus
+  propios maestros vía el CRUD. El dato inicial (15 clientes / 244
+  parámetros ya cargados en local desde el Excel) **no se migra solo a
+  Hostinger** — si Hostinger necesita el mismo set inicial, se captura una
+  vez a mano desde `/admin/clientes` y `/admin/parametros-item`.
 
 ## Orden de implementación (referencia histórica)
 

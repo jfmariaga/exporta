@@ -42,6 +42,10 @@ Route::middleware(['auth', 'activo'])->group(function () {
             ->middleware('can:'.Permisos::ADMIN_ROLES)->name('roles.index');
         Volt::route('/permisos', 'admin.permisos.index')
             ->middleware('can:'.Permisos::ADMIN_ROLES)->name('permisos.index');
+        Volt::route('/clientes', 'admin.clientes.index')
+            ->middleware('can:'.Permisos::ADMIN_USUARIOS)->name('clientes.index');
+        Volt::route('/parametros-item', 'admin.parametros-item.index')
+            ->middleware('can:'.Permisos::ADMIN_USUARIOS)->name('parametros-item.index');
     });
 });
 
