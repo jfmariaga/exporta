@@ -337,10 +337,12 @@ new #[Layout('layouts.app')] class extends Component
                             <input type="date" wire:model="lineasSeg.{{ $l->item }}.fecha_programa" @disabled(! $puedeEditar)
                                    class="field-sm w-36">
                         </td>
-                        <td class="num">
+                        <td class="num" x-data>
+                            <input type="hidden" x-ref="raw{{ $l->item }}" wire:model.live.debounce.300ms="lineasSeg.{{ $l->item }}.inventario">
                             <input type="text" inputmode="decimal" value="{{ $invFormateado }}"
-                                   x-data="{ enviar: debounce((v) => $wire.set('lineasSeg.{{ $l->item }}.inventario', v), 300) }"
-                                   x-on:input="const r = formatoMilesInput($el.value); $el.value = r.mostrado; enviar(r.numerico)"
+                                   x-on:input="const r = formatoMilesInput($el.value); $el.value = r.mostrado;
+                                       $refs['raw{{ $l->item }}'].value = r.numerico;
+                                       $refs['raw{{ $l->item }}'].dispatchEvent(new Event('input'))"
                                    @disabled(! $puedeEditar)
                                    class="field-sm w-28 text-right" placeholder="—">
                             <div @class(['mt-0.5 text-xs', 'text-red-600 font-semibold' => $dispInsuficiente, 'text-ink-400' => ! $dispInsuficiente])>

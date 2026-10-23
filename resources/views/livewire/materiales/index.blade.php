@@ -60,8 +60,6 @@ new #[Layout('layouts.app')] class extends Component
                         <th>Ítem</th>
                         <th>Descripción</th>
                         <th class="!text-right">Cant. pedida</th>
-                        <th>Observaciones</th>
-                        <th>Fecha programada</th>
                     </tr>
                     </thead>
                     <tbody>
@@ -78,11 +76,9 @@ new #[Layout('layouts.app')] class extends Component
                             <td class="font-semibold text-ink-900">{{ $l->item }}</td>
                             <td>{{ $l->descripcion }}</td>
                             <td class="num whitespace-nowrap">{{ number_format((float) $l->cantidad_pedida, 0, ',', '.') }} <span class="text-xs text-ink-400">{{ $l->unidad_medida }}</span></td>
-                            <td>{{ $l->observaciones ?: '—' }}</td>
-                            <td class="whitespace-nowrap">{{ $l->fecha_programa ? \Illuminate\Support\Carbon::parse($l->fecha_programa)->format('d/m/Y') : '—' }}</td>
                         </tr>
                     @empty
-                        <tr><td colspan="8" class="!py-10 text-center text-ink-400">Ningún ítem tiene asignado ese estado.</td></tr>
+                        <tr><td colspan="6" class="!py-10 text-center text-ink-400">Ningún ítem tiene asignado ese estado.</td></tr>
                     @endforelse
                     </tbody>
                 </table>

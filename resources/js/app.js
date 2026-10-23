@@ -34,12 +34,3 @@ window.formatoMilesInput = function (valorEscrito) {
         numerico: entero === '' && decimal === '' ? '' : `${entero || '0'}${idxComa === -1 ? '' : '.' + decimal}`,
     };
 };
-
-window.debounce = function (fn, delay = 300) {
-    let temporizador;
-
-    return (...args) => {
-        clearTimeout(temporizador);
-        temporizador = setTimeout(() => fn(...args), delay);
-    };
-};

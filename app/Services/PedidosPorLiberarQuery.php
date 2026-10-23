@@ -59,7 +59,6 @@ class PedidosPorLiberarQuery
                 $join->on('s.pedido', '=', 'l.pedido')->on('s.item', '=', 'l.item');
             })
             ->where('s.estado_materiales', $estado)
-            ->addSelect('s.observaciones', 's.fecha_programa')
             ->orderBy('l.pedido')
             ->orderBy('l.item')
             ->paginate($porPagina);
