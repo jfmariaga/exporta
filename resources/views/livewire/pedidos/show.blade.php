@@ -298,7 +298,6 @@ new #[Layout('layouts.app')] class extends Component
                         $inv = isset($lineasSeg[$l->item]['inventario']) && $lineasSeg[$l->item]['inventario'] !== null && $lineasSeg[$l->item]['inventario'] !== ''
                             ? (float) $lineasSeg[$l->item]['inventario'] : null;
                         $pct = $inv !== null && (float) $l->cantidad_pedida > 0 ? round($inv / (float) $l->cantidad_pedida * 100, 2) : null;
-                        $invFormateado = $inv !== null ? \App\Support\Numero::decimal($inv, 3) : '';
                         $dispItem = (float) ($disponibles[$l->item] ?? 0);
                         $dispInsuficiente = $dispItem < (float) $l->cantidad_pedida;
                     @endphp
@@ -337,13 +336,8 @@ new #[Layout('layouts.app')] class extends Component
                             <input type="date" wire:model="lineasSeg.{{ $l->item }}.fecha_programa" @disabled(! $puedeEditar)
                                    class="field-sm w-36">
                         </td>
-                        <td class="num" x-data>
-                            <input type="hidden" x-ref="raw{{ $l->item }}" wire:model.live.debounce.300ms="lineasSeg.{{ $l->item }}.inventario">
-                            <input type="text" inputmode="decimal" value="{{ $invFormateado }}"
-                                   x-on:input="const r = formatoMilesInput($el.value); $el.value = r.mostrado;
-                                       $refs['raw{{ $l->item }}'].value = r.numerico;
-                                       $refs['raw{{ $l->item }}'].dispatchEvent(new Event('input'))"
-                                   @disabled(! $puedeEditar)
+                        <td class="num">
+                            <input type="number" step="0.001" min="0" wire:model.live="lineasSeg.{{ $l->item }}.inventario" @disabled(! $puedeEditar)
                                    class="field-sm w-28 text-right" placeholder="—">
                             <div @class(['mt-0.5 text-xs', 'text-red-600 font-semibold' => $dispInsuficiente, 'text-ink-400' => ! $dispInsuficiente])>
                                 Disp.: {{ \App\Support\Numero::decimal($dispItem, 3) }}
