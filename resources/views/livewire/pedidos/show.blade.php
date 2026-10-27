@@ -59,7 +59,7 @@ new #[Layout('layouts.app')] class extends Component
                 'estado_materiales' => $s->estado_materiales,
                 'observaciones' => $s->observaciones,
                 'fecha_programa' => $s->fecha_programa?->format('Y-m-d'),
-                'inventario' => $s->inventario !== null ? (string) $s->inventario : null,
+                'inventario' => $s->inventario !== null ? (string) (float) $s->inventario : null,
             ];
         }
     }
