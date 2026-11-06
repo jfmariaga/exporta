@@ -2,6 +2,7 @@
 
 use App\Enums\EstadoMateriales;
 use App\Enums\EstadoSeguimiento;
+use App\Models\ActividadDestinoAuditoria;
 use App\Models\LineaPedido;
 use App\Models\Seguimiento;
 use App\Models\SeguimientoPedido;
@@ -149,6 +150,44 @@ new #[Layout('layouts.app')] class extends Component
         session()->flash('status', 'Seguimiento de líneas guardado.');
     }
 
+    /**
+     * Marca/desmarca la condición de "actividad por destino" de una línea
+     * como cumplida. Se guarda al instante (no espera al botón "Guardar
+     * líneas") y deja registro en la auditoría: quién y cuándo.
+     */
+    public function toggleActividadCumplida(string $item, PedidosPorLiberarQuery $consulta): void
+    {
+        abort_unless(auth()->user()->can(Permisos::SEGUIMIENTO_EDITAR), 403);
+
+        $detalle = $consulta->detallePedido($this->pedido);
+        $linea = $detalle['lineas']->firstWhere('item', $item);
+        abort_unless($linea && $linea->actividad_destino, 404);
+
+        $nuevoEstado = ! (bool) $linea->actividad_cumplida;
+        $usuario = auth()->user();
+
+        Seguimiento::updateOrCreate(
+            ['pedido' => $this->pedido, 'item' => $item],
+            [
+                'descripcion' => $linea->descripcion,
+                'cantidad' => $linea->cantidad_pedida,
+                'actividad_cumplida' => $nuevoEstado,
+                'actividad_cumplida_en' => now(),
+                'actividad_cumplida_por' => $usuario->id,
+            ],
+        );
+
+        ActividadDestinoAuditoria::create([
+            'pedido' => $this->pedido,
+            'item' => $item,
+            'destino' => $linea->destino,
+            'actividad' => $linea->actividad_destino,
+            'cumplida' => $nuevoEstado,
+            'usuario_id' => $usuario->id,
+            'usuario_nombre' => $usuario->name,
+        ]);
+    }
+
     /** Líneas filtradas por categoría y ordenadas (sin paginar), para la tabla y para exportar. */
     private function lineasFiltradasOrdenadas(Collection $todas): Collection
     {
@@ -184,12 +223,15 @@ new #[Layout('layouts.app')] class extends Component
                 $seg['fecha_programa'] ?? null,
                 $inv,
                 $pct,
+                $l->actividad_destino,
+                $l->actividad_destino ? ($l->actividad_cumplida ? 'Sí' : 'No') : null,
             ];
         });
 
         return $this->descargarExcel('pedido-'.$this->pedido.'-lineas.xlsx', [
             'Ítem', 'Descripción', 'Cant. pedida', 'Toneladas', 'Cajas', 'Volumen m3',
             'Estado materiales', 'Observaciones', 'Fecha programada', 'Inventario', '% Cumpl.',
+            'Condición', 'Cumplida',
         ], $filas);
     }
 
@@ -346,6 +388,7 @@ new #[Layout('layouts.app')] class extends Component
                     <x-ui.th-sort campo="fecha_programa" :actual="$ordenCampo" :dir="$ordenDir">Fecha programada</x-ui.th-sort>
                     <x-ui.th-sort campo="inventario" :actual="$ordenCampo" :dir="$ordenDir" align="right">Inventario</x-ui.th-sort>
                     <x-ui.th-sort campo="porcentaje_cumplimiento" :actual="$ordenCampo" :dir="$ordenDir" align="right">% Cumpl.</x-ui.th-sort>
+                    <th>Condición</th>
                 </tr>
                 </thead>
                 <tbody>
@@ -405,9 +448,20 @@ new #[Layout('layouts.app')] class extends Component
                                 <span @class(['font-medium', 'text-success dark:text-success-dark' => $pct >= 100, 'text-warning-text dark:text-warning' => $pct < 100])>{{ number_format($pct, 1, ',', '.') }}%</span>
                             @else — @endif
                         </td>
+                        <td>
+                            @if ($l->actividad_destino)
+                                <label class="inline-flex items-center gap-2" title="{{ $l->actividad_cumplida ? 'Cumplida'.($l->actividad_cumplida_por_nombre ? ' por '.$l->actividad_cumplida_por_nombre : '').($l->actividad_cumplida_en ? ' el '.\Illuminate\Support\Carbon::parse($l->actividad_cumplida_en)->format('d/m/Y H:i') : '') : 'Pendiente de cumplir' }}">
+                                    <input type="checkbox" wire:click="toggleActividadCumplida('{{ $l->item }}')" @checked($l->actividad_cumplida) @disabled(! $puedeEditar)
+                                           class="rounded border-line dark:border-white/10 text-brand-600 focus:ring-brand-500">
+                                    <x-ui.badge :color="$l->actividad_cumplida ? 'green' : 'red'">{{ $l->actividad_destino }}</x-ui.badge>
+                                </label>
+                            @else
+                                <span class="text-ink-secondary dark:text-gray-500">—</span>
+                            @endif
+                        </td>
                     </tr>
                 @empty
-                    <tr><td colspan="11" class="!py-8 text-center text-ink-secondary dark:text-gray-500">Sin líneas para esa categoría.</td></tr>
+                    <tr><td colspan="12" class="!py-8 text-center text-ink-secondary dark:text-gray-500">Sin líneas para esa categoría.</td></tr>
                 @endforelse
                 </tbody>
             </table>

@@ -23,6 +23,9 @@ class Seguimiento extends Model
         'fecha_programa',
         'inventario',
         'actualizado_por',
+        'actividad_cumplida',
+        'actividad_cumplida_en',
+        'actividad_cumplida_por',
     ];
 
     protected function casts(): array
@@ -31,6 +34,8 @@ class Seguimiento extends Model
             'cantidad' => 'decimal:3',
             'inventario' => 'decimal:3',
             'fecha_programa' => 'date',
+            'actividad_cumplida' => 'boolean',
+            'actividad_cumplida_en' => 'datetime',
         ];
     }
 
@@ -38,6 +43,12 @@ class Seguimiento extends Model
     public function actualizadoPor(): BelongsTo
     {
         return $this->belongsTo(User::class, 'actualizado_por');
+    }
+
+    /** @return BelongsTo<User, Seguimiento> */
+    public function actividadCumplidaPor(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'actividad_cumplida_por');
     }
 
     /** % de cumplimiento = inventario / cantidad pedida * 100. Null si no hay cantidad. */

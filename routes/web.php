@@ -49,6 +49,10 @@ Route::middleware(['auth', 'activo'])->group(function () {
             ->middleware('can:'.Permisos::ADMIN_USUARIOS)->name('clientes.index');
         Volt::route('/parametros-item', 'admin.parametros-item.index')
             ->middleware('can:'.Permisos::ADMIN_USUARIOS)->name('parametros-item.index');
+        Volt::route('/actividad-destino', 'admin.actividad-destino.index')
+            ->middleware('can:'.Permisos::ADMIN_USUARIOS)->name('actividad-destino.index');
+        Volt::route('/actividad-destino/historial', 'admin.actividad-destino.historial')
+            ->middleware('can:'.Permisos::ADMIN_USUARIOS)->name('actividad-destino.historial');
     });
 });
 

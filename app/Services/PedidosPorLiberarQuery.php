@@ -222,9 +222,15 @@ class PedidosPorLiberarQuery
             ->leftJoin('seguimientos as s', function ($join) {
                 $join->on('s.pedido', '=', 'l.pedido')->on('s.item', '=', 'l.item');
             })
+            ->leftJoin('actividades_destino as ad', function ($join) {
+                $join->on('ad.item', '=', 'l.item')->on('ad.destino', '=', 'c.destino');
+            })
+            ->leftJoin('users as au', 'au.id', '=', 's.actividad_cumplida_por')
             ->where('l.pedido', $pedido)
             ->addSelect(
                 's.estado_materiales', 's.observaciones', 's.fecha_programa', 's.inventario',
+                's.actividad_cumplida', 's.actividad_cumplida_en',
+                'ad.actividad as actividad_destino', 'au.name as actividad_cumplida_por_nombre',
             )
             ->selectRaw('CASE WHEN l.cantidad_pedida > 0 AND s.inventario IS NOT NULL THEN s.inventario * 100.0 / l.cantidad_pedida END as porcentaje_cumplimiento')
             ->orderBy('l.item')
