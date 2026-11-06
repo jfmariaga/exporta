@@ -64,7 +64,7 @@ new #[Layout('layouts.app')] class extends Component
     </x-slot:actions>
 
     @error('sync')
-        <div class="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{{ $message }}</div>
+        <div class="rounded-lg border border-danger/20 bg-danger-soft px-4 py-3 text-sm text-danger dark:border-danger-dark/20 dark:bg-danger-dark/10 dark:text-danger-dark">{{ $message }}</div>
     @enderror
 
     @php
@@ -97,7 +97,7 @@ new #[Layout('layouts.app')] class extends Component
                 @forelse ($estados as $a)
                     @php [$etiqueta, $color] = $etiquetasEstado[$a['estado']]; @endphp
                     <tr wire:key="inv-{{ $a['item'] }}">
-                        <td class="font-semibold text-ink-900">{{ $a['item'] }}</td>
+                        <td class="font-semibold text-ink-900 dark:text-gray-100">{{ $a['item'] }}</td>
                         <td>{{ $descripciones[$a['item']] ?? '—' }}</td>
                         <td class="num">{{ number_format($a['cantidad_total'], 0, ',', '.') }}</td>
                         <td class="num">{{ number_format($a['total_pedido'], 0, ',', '.') }}</td>
@@ -111,7 +111,7 @@ new #[Layout('layouts.app')] class extends Component
                         <td class="num">{{ number_format($a['asignado'], 0, ',', '.') }}</td>
                         <td class="num font-semibold">{{ number_format($a['disponible'], 0, ',', '.') }}</td>
                         <td><x-ui.badge :color="$color">{{ $etiqueta }}</x-ui.badge></td>
-                        <td class="text-xs text-ink-400 whitespace-nowrap">
+                        <td class="text-xs text-ink-secondary dark:text-gray-500 whitespace-nowrap">
                             {{ $a['sincronizado_en'] ? \Illuminate\Support\Carbon::parse($a['sincronizado_en'])->format('d/m/Y H:i') : '—' }}
                         </td>
                         <td>
@@ -122,7 +122,7 @@ new #[Layout('layouts.app')] class extends Component
                     </tr>
                     @if ($detalleAbierto === $a['item'] && $a['detalle']->isNotEmpty())
                         <tr wire:key="inv-detalle-{{ $a['item'] }}">
-                            <td colspan="10" class="bg-ink-50">
+                            <td colspan="10" class="bg-surface-alt dark:bg-white/5">
                                 <div class="overflow-x-auto p-2">
                                     <table class="data-table">
                                         <thead>
@@ -153,7 +153,7 @@ new #[Layout('layouts.app')] class extends Component
                         </tr>
                     @endif
                 @empty
-                    <tr><td colspan="10" class="!py-8 text-center text-ink-400">Aún no hay inventario sincronizado.</td></tr>
+                    <tr><td colspan="10" class="!py-8 text-center text-ink-secondary dark:text-gray-500">Aún no hay inventario sincronizado.</td></tr>
                 @endforelse
                 </tbody>
             </table>

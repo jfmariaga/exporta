@@ -64,11 +64,11 @@ new class extends Component
 
 <section>
     <header>
-        <h2 class="text-lg font-medium text-ink-900">
+        <h2 class="text-lg font-medium text-ink-900 dark:text-gray-100">
             {{ __('Profile Information') }}
         </h2>
 
-        <p class="mt-1 text-sm text-ink-600">
+        <p class="mt-1 text-sm text-ink-secondary dark:text-gray-400">
             {{ __("Update your account's profile information and email address.") }}
         </p>
     </header>
@@ -87,16 +87,16 @@ new class extends Component
 
             @if (auth()->user() instanceof \Illuminate\Contracts\Auth\MustVerifyEmail && ! auth()->user()->hasVerifiedEmail())
                 <div>
-                    <p class="text-sm mt-2 text-ink-800">
+                    <p class="text-sm mt-2 text-ink-900 dark:text-gray-200">
                         {{ __('Your email address is unverified.') }}
 
-                        <button wire:click.prevent="sendVerification" class="underline text-sm text-ink-600 hover:text-ink-900 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-500">
+                        <button wire:click.prevent="sendVerification" class="underline text-sm text-ink-secondary hover:text-ink-900 dark:text-gray-400 dark:hover:text-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-500 dark:focus:ring-offset-surface-dark">
                             {{ __('Click here to re-send the verification email.') }}
                         </button>
                     </p>
 
                     @if (session('status') === 'verification-link-sent')
-                        <p class="mt-2 font-medium text-sm text-green-600">
+                        <p class="mt-2 font-medium text-sm text-success dark:text-success-dark">
                             {{ __('A new verification link has been sent to your email address.') }}
                         </p>
                     @endif

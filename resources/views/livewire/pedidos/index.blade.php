@@ -129,11 +129,11 @@ new #[Layout('layouts.app')] class extends Component
     </x-slot:actions>
 
     @error('archivo')
-        <div class="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{{ $message }}</div>
+        <div class="rounded-lg border border-danger/20 bg-danger-soft px-4 py-3 text-sm text-danger dark:border-danger-dark/20 dark:bg-danger-dark/10 dark:text-danger-dark">{{ $message }}</div>
     @enderror
 
     @if ($resumenImport)
-        <div class="rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800">
+        <div class="rounded-lg border border-line bg-cold px-4 py-3 text-sm text-ink-900 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200">
             <div class="font-medium">Importación completada</div>
             <div class="mt-1 flex flex-wrap gap-x-6 gap-y-1">
                 @foreach ($resumenImport as $hoja => $r)
@@ -160,7 +160,7 @@ new #[Layout('layouts.app')] class extends Component
                 <option value="REVISADO">Revisado</option>
                 <option value="POR REVISAR">Por revisar</option>
             </select>
-            <span class="ml-auto text-xs text-ink-400">{{ $pedidos->total() }} pedido(s)</span>
+            <span class="ml-auto text-xs text-ink-secondary dark:text-gray-400">{{ $pedidos->total() }} pedido(s)</span>
             <button wire:click="limpiarFiltros" class="btn-link">Limpiar</button>
         </div>
     </x-ui.card>
@@ -194,8 +194,8 @@ new #[Layout('layouts.app')] class extends Component
                             <a href="{{ route('pedidos.show', $p->pedido) }}" wire:navigate class="font-semibold text-brand-600 hover:text-brand-500">{{ $p->pedido }}</a>
                         </td>
                         <td>
-                            <div class="font-medium text-ink-900">{{ $p->nombre_cliente }}</div>
-                            <div class="text-xs text-ink-400">{{ $p->nit_cliente }}</div>
+                            <div class="font-medium text-ink-900 dark:text-gray-100">{{ $p->nombre_cliente }}</div>
+                            <div class="text-xs text-ink-secondary dark:text-gray-500">{{ $p->nit_cliente }}</div>
                         </td>
                         <td class="whitespace-nowrap">
                             {{ $p->destino }}
@@ -227,20 +227,20 @@ new #[Layout('layouts.app')] class extends Component
                             @if ($p->porcentaje_cumplimiento !== null)
                                 <span @class([
                                     'font-medium',
-                                    'text-emerald-600' => $p->porcentaje_cumplimiento >= 100,
-                                    'text-amber-600' => $p->porcentaje_cumplimiento < 100,
+                                    'text-success dark:text-success-dark' => $p->porcentaje_cumplimiento >= 100,
+                                    'text-warning-text dark:text-warning' => $p->porcentaje_cumplimiento < 100,
                                 ])>{{ number_format((float) $p->porcentaje_cumplimiento, 1, ',', '.') }}%</span>
                             @else — @endif
                         </td>
                         <td><x-ui.badge color="blue">{{ $p->estado }}</x-ui.badge></td>
                         <td class="whitespace-nowrap">{{ $p->fecha_tentativa_cargue ? \Illuminate\Support\Carbon::parse($p->fecha_tentativa_cargue)->format('d/m/Y') : '—' }}</td>
-                        <td class="whitespace-nowrap">{{ $p->alerta }} <span class="text-ink-600">{{ $p->estado_seguimiento }}</span></td>
+                        <td class="whitespace-nowrap">{{ $p->alerta }} <span class="text-ink-900 dark:text-gray-300">{{ $p->estado_seguimiento }}</span></td>
                         <td>
                             <x-ui.badge :color="$p->estado_revision === 'REVISADO' ? 'green' : 'gray'">{{ $p->estado_revision }}</x-ui.badge>
                         </td>
                     </tr>
                 @empty
-                    <tr><td colspan="15" class="!py-10 text-center text-ink-400">Sin pedidos por liberar.</td></tr>
+                    <tr><td colspan="15" class="!py-10 text-center text-ink-secondary dark:text-gray-500">Sin pedidos por liberar.</td></tr>
                 @endforelse
                 </tbody>
             </table>

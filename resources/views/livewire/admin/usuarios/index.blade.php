@@ -194,17 +194,17 @@ new #[Layout('layouts.app')] class extends Component
                 <div>
                     <label class="lbl">Nombre</label>
                     <input wire:model="nombre" class="field w-full">
-                    @error('nombre') <span class="mt-1 block text-xs text-red-600">{{ $message }}</span> @enderror
+                    @error('nombre') <span class="mt-1 block text-xs text-danger dark:text-danger-dark">{{ $message }}</span> @enderror
                 </div>
                 <div>
                     <label class="lbl">Correo</label>
                     <input wire:model="correo" type="email" class="field w-full">
-                    @error('correo') <span class="mt-1 block text-xs text-red-600">{{ $message }}</span> @enderror
+                    @error('correo') <span class="mt-1 block text-xs text-danger dark:text-danger-dark">{{ $message }}</span> @enderror
                 </div>
                 <div>
-                    <label class="lbl">Contraseña @if ($editandoId)<span class="normal-case text-ink-400">(en blanco = no cambiar)</span>@endif</label>
+                    <label class="lbl">Contraseña @if ($editandoId)<span class="normal-case text-ink-secondary dark:text-gray-500">(en blanco = no cambiar)</span>@endif</label>
                     <input wire:model="clave" type="password" class="field w-full">
-                    @error('clave') <span class="mt-1 block text-xs text-red-600">{{ $message }}</span> @enderror
+                    @error('clave') <span class="mt-1 block text-xs text-danger dark:text-danger-dark">{{ $message }}</span> @enderror
                 </div>
                 <div>
                     <label class="lbl">Confirmar contraseña</label>
@@ -215,11 +215,11 @@ new #[Layout('layouts.app')] class extends Component
                     <div class="flex flex-wrap gap-x-6 gap-y-2">
                         @foreach ($roles as $r)
                             <label class="flex items-center gap-2 text-sm">
-                                <input type="checkbox" wire:model="rolesSel" value="{{ $r }}" class="rounded border-ink-300 text-brand-600 focus:ring-brand-500"> {{ $r }}
+                                <input type="checkbox" wire:model="rolesSel" value="{{ $r }}" class="rounded border-line dark:border-white/10 text-brand-600 focus:ring-brand-500"> {{ $r }}
                             </label>
                         @endforeach
                     </div>
-                    @error('rolesSel') <span class="mt-1 block text-xs text-red-600">{{ $message }}</span> @enderror
+                    @error('rolesSel') <span class="mt-1 block text-xs text-danger dark:text-danger-dark">{{ $message }}</span> @enderror
                 </div>
                 <div class="flex gap-3 sm:col-span-2">
                     <button class="btn-primary">Guardar</button>
@@ -262,8 +262,8 @@ new #[Layout('layouts.app')] class extends Component
                 <tbody>
                 @foreach ($usuarios as $u)
                     <tr wire:key="u-{{ $u->id }}">
-                        <td class="font-medium text-ink-900">{{ $u->name }}</td>
-                        <td class="text-ink-600">{{ $u->email }}</td>
+                        <td class="font-medium text-ink-900 dark:text-gray-100">{{ $u->name }}</td>
+                        <td class="text-ink-secondary dark:text-gray-400">{{ $u->email }}</td>
                         <td>
                             @foreach ($u->getRoleNames() as $rn)
                                 <x-ui.badge color="indigo" class="mr-1">{{ $rn }}</x-ui.badge>
@@ -273,8 +273,8 @@ new #[Layout('layouts.app')] class extends Component
                         <td class="num whitespace-nowrap">
                             <div class="inline-flex items-center gap-3">
                                 <button wire:click="editar({{ $u->id }})" class="btn-link">Editar</button>
-                                <button wire:click="toggleActivo({{ $u->id }})" class="btn-link !text-ink-600">{{ $u->activo ? 'Desactivar' : 'Activar' }}</button>
-                                <button wire:click="pedirReset({{ $u->id }})" class="btn-link !text-ink-600">Clave</button>
+                                <button wire:click="toggleActivo({{ $u->id }})" class="btn-link !text-ink-secondary dark:!text-gray-400">{{ $u->activo ? 'Desactivar' : 'Activar' }}</button>
+                                <button wire:click="pedirReset({{ $u->id }})" class="btn-link !text-ink-secondary dark:!text-gray-400">Clave</button>
                                 <button type="button" x-data x-on:click="Swal.fire({
                                             title: '¿Eliminar usuario?',
                                             text: @js('¿Eliminar a '.$u->name.'?'),
@@ -282,22 +282,22 @@ new #[Layout('layouts.app')] class extends Component
                                             showCancelButton: true,
                                             confirmButtonText: 'Eliminar',
                                             cancelButtonText: 'Cancelar',
-                                            confirmButtonColor: '#dc2626',
+                                            confirmButtonColor: '#7A1E1E',
                                             reverseButtons: true,
                                         }).then((r) => { if (r.isConfirmed) $wire.eliminar({{ $u->id }}) })" class="btn-danger-link">Eliminar</button>
                             </div>
                         </td>
                     </tr>
                     @if ($resetId === $u->id)
-                        <tr class="bg-brand-50/40" wire:key="reset-{{ $u->id }}">
+                        <tr class="bg-brand-50/40 dark:bg-brand-900/10" wire:key="reset-{{ $u->id }}">
                             <td colspan="5">
                                 <form wire:submit="guardarReset" class="flex flex-wrap items-center gap-2">
-                                    <span class="text-sm text-ink-600">Nueva contraseña para <b>{{ $u->name }}</b>:</span>
+                                    <span class="text-sm text-ink-900 dark:text-gray-300">Nueva contraseña para <b>{{ $u->name }}</b>:</span>
                                     <input wire:model="resetPw" type="password" class="field-sm">
                                     <input wire:model="resetPw_confirmation" type="password" placeholder="Confirmar" class="field-sm">
                                     <button class="btn-dark">Restablecer</button>
-                                    <button type="button" wire:click="$set('resetId', null)" class="btn-link !text-ink-500">Cancelar</button>
-                                    @error('resetPw') <span class="text-xs text-red-600">{{ $message }}</span> @enderror
+                                    <button type="button" wire:click="$set('resetId', null)" class="btn-link !text-ink-secondary dark:!text-gray-400">Cancelar</button>
+                                    @error('resetPw') <span class="text-xs text-danger dark:text-danger-dark">{{ $message }}</span> @enderror
                                 </form>
                             </td>
                         </tr>

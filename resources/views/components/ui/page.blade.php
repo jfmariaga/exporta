@@ -6,10 +6,10 @@
             <div class="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                     @if ($title)
-                        <h1 class="text-2xl font-semibold tracking-tight text-ink-900">{{ $title }}</h1>
+                        <h1 class="text-2xl font-semibold tracking-tight text-ink-900 dark:text-gray-100">{{ $title }}</h1>
                     @endif
                     @if ($subtitle)
-                        <p class="mt-1 text-sm text-ink-500">{{ $subtitle }}</p>
+                        <p class="mt-1 text-sm text-ink-secondary dark:text-gray-400">{{ $subtitle }}</p>
                     @endif
                 </div>
                 @isset($actions)

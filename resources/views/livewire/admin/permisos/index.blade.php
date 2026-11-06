@@ -43,13 +43,13 @@ new #[Layout('layouts.app')] class extends Component
                 <tbody>
                 @foreach ($matriz as $permiso => $rolesConPermiso)
                     <tr wire:key="p-{{ $permiso }}">
-                        <td><span class="rounded bg-ink-100 px-1.5 py-0.5 font-mono text-xs text-ink-600">{{ $permiso }}</span></td>
-                        <td class="text-ink-700">{{ $etiquetas[$permiso] ?? '' }}</td>
+                        <td><span class="rounded bg-surface-alt dark:bg-white/5 px-1.5 py-0.5 font-mono text-xs text-ink-secondary dark:text-gray-400">{{ $permiso }}</span></td>
+                        <td class="text-ink-900 dark:text-gray-300">{{ $etiquetas[$permiso] ?? '' }}</td>
                         <td>
                             @forelse ($rolesConPermiso as $rn)
                                 <x-ui.badge color="indigo" class="mr-1">{{ $rn }}</x-ui.badge>
                             @empty
-                                <span class="text-ink-400">—</span>
+                                <span class="text-ink-secondary dark:text-gray-500">—</span>
                             @endforelse
                         </td>
                     </tr>

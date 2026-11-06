@@ -108,17 +108,17 @@ new #[Layout('layouts.app')] class extends Component
                 <div>
                     <label class="lbl">NIT</label>
                     <input wire:model="nit_cliente" class="field w-full">
-                    @error('nit_cliente') <span class="mt-1 block text-xs text-red-600">{{ $message }}</span> @enderror
+                    @error('nit_cliente') <span class="mt-1 block text-xs text-danger dark:text-danger-dark">{{ $message }}</span> @enderror
                 </div>
                 <div>
                     <label class="lbl">Cliente</label>
                     <input wire:model="cliente" class="field w-full">
-                    @error('cliente') <span class="mt-1 block text-xs text-red-600">{{ $message }}</span> @enderror
+                    @error('cliente') <span class="mt-1 block text-xs text-danger dark:text-danger-dark">{{ $message }}</span> @enderror
                 </div>
                 <div>
                     <label class="lbl">Destino</label>
                     <input wire:model="destino" class="field w-full">
-                    @error('destino') <span class="mt-1 block text-xs text-red-600">{{ $message }}</span> @enderror
+                    @error('destino') <span class="mt-1 block text-xs text-danger dark:text-danger-dark">{{ $message }}</span> @enderror
                 </div>
                 <div class="flex gap-3 sm:col-span-3">
                     <button class="btn-primary">Guardar</button>
@@ -143,7 +143,7 @@ new #[Layout('layouts.app')] class extends Component
                 @foreach ($clientes as $c)
                     <tr wire:key="c-{{ $c->id }}">
                         <td class="num">{{ $c->nit_cliente }}</td>
-                        <td class="font-medium text-ink-900">{{ $c->cliente ?: '—' }}</td>
+                        <td class="font-medium text-ink-900 dark:text-gray-100">{{ $c->cliente ?: '—' }}</td>
                         <td>{{ $c->destino ?: '—' }}</td>
                         <td class="num whitespace-nowrap">
                             <div class="inline-flex items-center gap-3">
@@ -155,7 +155,7 @@ new #[Layout('layouts.app')] class extends Component
                                             showCancelButton: true,
                                             confirmButtonText: 'Eliminar',
                                             cancelButtonText: 'Cancelar',
-                                            confirmButtonColor: '#dc2626',
+                                            confirmButtonColor: '#7A1E1E',
                                             reverseButtons: true,
                                         }).then((r) => { if (r.isConfirmed) $wire.eliminar({{ $c->id }}) })" class="btn-danger-link">Eliminar</button>
                             </div>

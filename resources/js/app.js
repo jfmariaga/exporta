@@ -15,3 +15,13 @@ window.Toast = Swal.mixin({
         toast.onmouseleave = Swal.resumeTimer;
     },
 });
+
+document.addEventListener('alpine:init', () => {
+    Alpine.store('sidebar', {
+        collapsed: localStorage.getItem('sidebarCollapsed') === 'true',
+        toggle() {
+            this.collapsed = !this.collapsed;
+            localStorage.setItem('sidebarCollapsed', this.collapsed);
+        },
+    });
+});

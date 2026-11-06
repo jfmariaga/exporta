@@ -108,16 +108,16 @@ new #[Layout('layouts.app')] class extends Component
                 <div>
                     <label class="lbl">Nombre</label>
                     <input wire:model="nombre" class="field w-full">
-                    @error('nombre') <span class="mt-1 block text-xs text-red-600">{{ $message }}</span> @enderror
+                    @error('nombre') <span class="mt-1 block text-xs text-danger dark:text-danger-dark">{{ $message }}</span> @enderror
                 </div>
                 <div>
                     <label class="lbl">Permisos</label>
-                    <div class="space-y-1.5 rounded-lg border border-ink-200 p-3">
+                    <div class="space-y-1.5 rounded-lg border border-line dark:border-white/10 p-3">
                         @foreach ($permisos as $p)
                             <label class="flex items-center gap-2 text-sm">
-                                <input type="checkbox" wire:model="permisosSel" value="{{ $p }}" class="rounded border-ink-300 text-brand-600 focus:ring-brand-500">
-                                <span class="font-mono text-xs text-ink-400">{{ $p }}</span>
-                                <span class="text-ink-700">— {{ $etiquetas[$p] ?? $p }}</span>
+                                <input type="checkbox" wire:model="permisosSel" value="{{ $p }}" class="rounded border-line dark:border-white/10 text-brand-600 focus:ring-brand-500">
+                                <span class="font-mono text-xs text-ink-secondary dark:text-gray-500">{{ $p }}</span>
+                                <span class="text-ink-900 dark:text-gray-300">— {{ $etiquetas[$p] ?? $p }}</span>
                             </label>
                         @endforeach
                     </div>
@@ -139,7 +139,7 @@ new #[Layout('layouts.app')] class extends Component
                 <tbody>
                 @foreach ($roles as $rol)
                     <tr wire:key="r-{{ $rol->id }}">
-                        <td class="font-medium text-ink-900">
+                        <td class="font-medium text-ink-900 dark:text-gray-100">
                             {{ $rol->name }}
                             @if ($rol->protegido)<x-ui.badge color="indigo" class="ml-1">protegido</x-ui.badge>@endif
                         </td>
@@ -156,7 +156,7 @@ new #[Layout('layouts.app')] class extends Component
                                                 showCancelButton: true,
                                                 confirmButtonText: 'Eliminar',
                                                 cancelButtonText: 'Cancelar',
-                                                confirmButtonColor: '#dc2626',
+                                                confirmButtonColor: '#7A1E1E',
                                                 reverseButtons: true,
                                             }).then((r) => { if (r.isConfirmed) $wire.eliminar({{ $rol->id }}) })" class="btn-danger-link">Eliminar</button>
                                 @endunless

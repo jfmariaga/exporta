@@ -191,7 +191,7 @@ new #[Layout('layouts.app')] class extends Component
             <div>
                 <div class="kv-label">Cliente</div>
                 <div class="kv-value">{{ $totales->nombre_cliente }}</div>
-                <div class="text-xs text-ink-400">{{ $totales->nit_cliente }}</div>
+                <div class="text-xs text-ink-secondary dark:text-gray-500">{{ $totales->nit_cliente }}</div>
             </div>
             <div><div class="kv-label">Destino</div><div class="kv-value">{{ $totales->destino }}</div></div>
             <div><div class="kv-label">Estado ERP</div><div class="mt-0.5"><x-ui.badge color="blue">{{ $totales->estado }}</x-ui.badge></div></div>
@@ -231,7 +231,7 @@ new #[Layout('layouts.app')] class extends Component
                 <div class="kv-value tabular-nums">
                     {{ $totales->inventario_total !== null ? number_format((float) $totales->inventario_total, 0, ',', '.') : '—' }}
                     @if ($totales->porcentaje_cumplimiento !== null)
-                        <span class="font-normal text-ink-500">({{ number_format((float) $totales->porcentaje_cumplimiento, 1, ',', '.') }}%)</span>
+                        <span class="font-normal text-ink-secondary dark:text-gray-400">({{ number_format((float) $totales->porcentaje_cumplimiento, 1, ',', '.') }}%)</span>
                     @endif
                 </div>
             </div>
@@ -259,8 +259,8 @@ new #[Layout('layouts.app')] class extends Component
                 <button wire:click="guardarPedido" class="btn-primary">Guardar pedido</button>
             @endif
         </div>
-        @error('estadoSeguimiento') <p class="mt-2 text-sm text-red-600">{{ $message }}</p> @enderror
-        @error('fechaTentativa') <p class="mt-2 text-sm text-red-600">{{ $message }}</p> @enderror
+        @error('estadoSeguimiento') <p class="mt-2 text-sm text-danger dark:text-danger-dark">{{ $message }}</p> @enderror
+        @error('fechaTentativa') <p class="mt-2 text-sm text-danger dark:text-danger-dark">{{ $message }}</p> @enderror
     </x-ui.card>
 
     {{-- Seguimiento a nivel de línea --}}
@@ -272,7 +272,7 @@ new #[Layout('layouts.app')] class extends Component
                     <option value="">Todas las categorías</option>
                     @foreach ($categorias as $c) <option value="{{ $c }}">{{ $c }}</option> @endforeach
                 </select>
-                <span class="text-xs text-ink-400">{{ $lineas->total() }} ítem(s)</span>
+                <span class="text-xs text-ink-secondary dark:text-gray-500">{{ $lineas->total() }} ítem(s)</span>
             </div>
         </x-slot:header>
         <div class="overflow-x-auto">
@@ -302,12 +302,12 @@ new #[Layout('layouts.app')] class extends Component
                         $dispInsuficiente = $dispItem < (float) $l->cantidad_pedida;
                     @endphp
                     <tr wire:key="lin-{{ $l->item }}">
-                        <td class="font-semibold text-ink-900">{{ $l->item }}</td>
+                        <td class="font-semibold text-ink-900 dark:text-gray-100">{{ $l->item }}</td>
                         <td>
-                            <div class="text-ink-900">{{ $l->descripcion }}</div>
-                            <div class="text-xs text-ink-400">{{ $l->grupo_item }}</div>
+                            <div class="text-ink-900 dark:text-gray-100">{{ $l->descripcion }}</div>
+                            <div class="text-xs text-ink-secondary dark:text-gray-500">{{ $l->grupo_item }}</div>
                         </td>
-                        <td class="num whitespace-nowrap">{{ number_format((float) $l->cantidad_pedida, 0, ',', '.') }} <span class="text-xs text-ink-400">{{ $l->unidad_medida }}</span></td>
+                        <td class="num whitespace-nowrap">{{ number_format((float) $l->cantidad_pedida, 0, ',', '.') }} <span class="text-xs text-ink-secondary dark:text-gray-500">{{ $l->unidad_medida }}</span></td>
                         <td class="num whitespace-nowrap">
                             @if ($l->sin_factor)<x-ui.badge color="amber">sin factor</x-ui.badge>
                             @else {{ number_format((float) $l->toneladas_linea, 1, ',', '.') }} @endif
@@ -339,19 +339,19 @@ new #[Layout('layouts.app')] class extends Component
                         <td class="num">
                             <input type="number" step="0.001" min="0" wire:model.live="lineasSeg.{{ $l->item }}.inventario" @disabled(! $puedeEditar)
                                    class="field-sm w-28 text-right" placeholder="—">
-                            <div @class(['mt-0.5 text-xs', 'text-red-600 font-semibold' => $dispInsuficiente, 'text-ink-400' => ! $dispInsuficiente])>
+                            <div @class(['mt-0.5 text-xs', 'text-danger dark:text-danger-dark font-semibold' => $dispInsuficiente, 'text-ink-secondary dark:text-gray-500' => ! $dispInsuficiente])>
                                 Disp.: {{ \App\Support\Numero::decimal($dispItem, 3) }}
                             </div>
-                            @error('lineasSeg.'.$l->item.'.inventario') <p class="mt-0.5 text-xs text-red-600">{{ $message }}</p> @enderror
+                            @error('lineasSeg.'.$l->item.'.inventario') <p class="mt-0.5 text-xs text-danger dark:text-danger-dark">{{ $message }}</p> @enderror
                         </td>
                         <td class="num">
                             @if ($pct !== null)
-                                <span @class(['font-medium', 'text-emerald-600' => $pct >= 100, 'text-amber-600' => $pct < 100])>{{ number_format($pct, 1, ',', '.') }}%</span>
+                                <span @class(['font-medium', 'text-success dark:text-success-dark' => $pct >= 100, 'text-warning-text dark:text-warning' => $pct < 100])>{{ number_format($pct, 1, ',', '.') }}%</span>
                             @else — @endif
                         </td>
                     </tr>
                 @empty
-                    <tr><td colspan="11" class="!py-8 text-center text-ink-400">Sin líneas para esa categoría.</td></tr>
+                    <tr><td colspan="11" class="!py-8 text-center text-ink-secondary dark:text-gray-500">Sin líneas para esa categoría.</td></tr>
                 @endforelse
                 </tbody>
             </table>

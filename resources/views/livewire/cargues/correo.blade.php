@@ -56,10 +56,10 @@ new #[Layout('layouts.app')] class extends Component
     </x-ui.card>
 
     <x-ui.card title="Vista HTML" x-data="{ copiado: false }">
-        <div class="correo-preview overflow-x-auto rounded-lg border border-ink-200 bg-ink-50/50 p-4 text-sm">{!! $html !!}</div>
+        <div class="correo-preview overflow-x-auto rounded-lg border border-line bg-surface-alt/50 p-4 text-sm dark:border-white/10 dark:bg-white/5">{!! $html !!}</div>
 
         <div class="mt-5 flex items-center justify-between">
-            <h3 class="text-sm font-semibold text-ink-600">Texto plano</h3>
+            <h3 class="text-sm font-semibold text-ink-900 dark:text-gray-200">Texto plano</h3>
             <button type="button" class="btn-secondary"
                     @click="navigator.clipboard.writeText($refs.txt.value); copiado = true; setTimeout(() => copiado = false, 2000)">
                 <span x-show="!copiado">Copiar</span>
@@ -67,6 +67,6 @@ new #[Layout('layouts.app')] class extends Component
             </button>
         </div>
         <textarea x-ref="txt" readonly rows="14"
-                  class="mt-2 w-full rounded-lg border-ink-300 bg-ink-50/50 font-mono text-xs text-ink-700 focus:border-brand-500 focus:ring-brand-500">{{ $texto }}</textarea>
+                  class="mt-2 w-full rounded-lg border-line bg-surface-alt/50 font-mono text-xs text-ink-900 focus:border-brand-500 focus:ring-brand-500 dark:border-white/10 dark:bg-white/5 dark:text-gray-300">{{ $texto }}</textarea>
     </x-ui.card>
 </x-ui.page>

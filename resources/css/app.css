@@ -1,4 +1,4 @@
-@import url('https://fonts.bunny.net/css?family=inter:400,500,600,700&display=swap');
+@import url('https://fonts.bunny.net/css?family=poppins:400,500,600,700&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -8,19 +8,19 @@
     [x-cloak] { display: none !important; }
     html { scroll-behavior: smooth; }
     body {
-        @apply bg-ink-100 text-ink-800 antialiased;
+        @apply bg-canvas text-ink-900 antialiased dark:bg-canvas-dark dark:text-gray-100;
         font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
         overflow-x: clip;
     }
     h1, h2, h3, h4 {
-        @apply text-ink-900 tracking-tight;
+        @apply text-ink-900 tracking-tight dark:text-gray-100;
     }
 }
 
 @layer components {
     /* Tarjetas */
     .card {
-        @apply rounded-xl border border-ink-200 bg-white shadow-card;
+        @apply rounded-3xl border border-line bg-surface shadow-sm dark:border-white/10 dark:bg-surface-dark;
     }
     .card-pad {
         @apply p-5 sm:p-6;
@@ -31,13 +31,13 @@
         @apply w-full border-collapse text-sm;
     }
     .data-table thead th {
-        @apply sticky top-0 z-10 whitespace-nowrap border-b border-ink-200 bg-ink-50/95 px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-ink-500 backdrop-blur;
+        @apply sticky top-0 z-10 whitespace-nowrap border-b border-line bg-surface-alt/95 px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-ink-secondary backdrop-blur dark:border-white/10 dark:bg-surface-dark/95 dark:text-gray-400;
     }
     .data-table tbody td {
-        @apply border-b border-ink-100 px-4 py-3 align-middle text-ink-700;
+        @apply border-b border-line px-4 py-3 align-middle text-ink-700 dark:border-white/10 dark:text-gray-300;
     }
     .data-table tbody tr:hover {
-        @apply bg-brand-50/40;
+        @apply bg-brand-50/40 dark:bg-brand-900/10;
     }
     .data-table tbody tr:last-child td {
         @apply border-b-0;
@@ -56,33 +56,33 @@
 
     /* Controles de formulario */
     .field {
-        @apply block w-full rounded-lg border-ink-300 text-sm shadow-sm transition focus:border-brand-500 focus:ring-brand-500 disabled:bg-ink-100 disabled:text-ink-500;
+        @apply block w-full rounded-lg border-line bg-surface text-sm text-ink-900 shadow-sm transition focus:border-brand-500 focus:ring-brand-500 disabled:bg-ink-100 disabled:text-ink-500 dark:border-white/10 dark:bg-surface-dark dark:text-gray-200 dark:focus:border-brand-500 dark:focus:ring-brand-500 dark:disabled:bg-white/5 dark:disabled:text-gray-500;
     }
     .field-sm {
-        @apply rounded-lg border-ink-300 text-sm shadow-sm focus:border-brand-500 focus:ring-brand-500 disabled:bg-ink-100 disabled:text-ink-500;
+        @apply rounded-lg border-line bg-surface text-sm text-ink-900 shadow-sm focus:border-brand-500 focus:ring-brand-500 disabled:bg-ink-100 disabled:text-ink-500 dark:border-white/10 dark:bg-surface-dark dark:text-gray-200 dark:focus:border-brand-500 dark:focus:ring-brand-500 dark:disabled:bg-white/5 dark:disabled:text-gray-500;
     }
     .lbl {
-        @apply mb-1 block text-xs font-medium text-ink-500;
+        @apply mb-1 block text-xs font-medium text-ink-secondary dark:text-gray-400;
     }
 
     /* Botones */
     .btn {
-        @apply inline-flex items-center justify-center gap-1.5 rounded-lg px-3.5 py-2 text-sm font-semibold shadow-sm transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-1 disabled:cursor-not-allowed disabled:opacity-60;
+        @apply inline-flex items-center justify-center gap-1.5 rounded-lg px-3.5 py-2 text-sm font-semibold shadow-sm transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-1 disabled:cursor-not-allowed disabled:opacity-60 dark:focus-visible:ring-offset-surface-dark;
     }
     .btn-primary {
-        @apply btn bg-brand-700 text-white hover:bg-brand-800;
+        @apply btn bg-brand-600 text-white hover:bg-brand-700 active:bg-brand-800;
     }
     .btn-secondary {
-        @apply btn border border-ink-300 bg-white text-ink-700 hover:bg-ink-50;
+        @apply btn border border-line bg-surface text-ink-900 hover:bg-surface-alt dark:border-white/10 dark:bg-surface-dark dark:text-gray-200 dark:hover:bg-white/5;
     }
     .btn-dark {
-        @apply btn bg-ink-800 text-white hover:bg-ink-700;
+        @apply btn bg-black text-white hover:bg-ink-800;
     }
     .btn-link {
-        @apply text-sm font-medium text-brand-700 hover:text-brand-800 hover:underline;
+        @apply text-sm font-medium text-brand-600 hover:text-brand-700 hover:underline dark:text-brand-300 dark:hover:text-brand-200;
     }
     .btn-danger-link {
-        @apply text-sm font-medium text-rose-600 hover:text-rose-500 hover:underline;
+        @apply text-sm font-medium text-danger hover:text-danger-hover hover:underline dark:text-danger-dark dark:hover:text-rose-300;
     }
     .btn-xs {
         @apply px-2.5 py-1 text-xs;
@@ -93,23 +93,23 @@
 
     /* Definición clave/valor para cabeceras */
     .kv-label {
-        @apply text-xs font-medium uppercase tracking-wide text-ink-400;
+        @apply text-xs font-medium uppercase tracking-wide text-ink-secondary dark:text-gray-400;
     }
     .kv-value {
-        @apply mt-0.5 text-sm font-medium text-ink-900;
+        @apply mt-0.5 text-sm font-medium text-ink-900 dark:text-gray-100;
     }
 
     /* Insignias */
     .badge {
         @apply inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 ring-inset;
     }
-    .badge-gray   { @apply bg-ink-100 text-ink-700 ring-ink-200; }
-    .badge-brand  { @apply bg-brand-50 text-brand-700 ring-brand-200; }
-    .badge-blue   { @apply bg-sky-50 text-sky-700 ring-sky-200; }
-    .badge-green  { @apply bg-emerald-50 text-emerald-700 ring-emerald-200; }
-    .badge-amber  { @apply bg-amber-50 text-amber-700 ring-amber-200; }
-    .badge-red    { @apply bg-rose-50 text-rose-700 ring-rose-200; }
-    .badge-violet { @apply bg-violet-50 text-violet-700 ring-violet-200; }
+    .badge-gray   { @apply bg-gray-100 text-gray-700 ring-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:ring-white/10; }
+    .badge-brand  { @apply bg-brand-50 text-brand-700 ring-brand-200 dark:bg-brand-900/40 dark:text-brand-300 dark:ring-brand-800/40; }
+    .badge-blue   { @apply bg-sky-50 text-sky-700 ring-sky-200 dark:bg-sky-900/30 dark:text-sky-300 dark:ring-sky-800/40; }
+    .badge-green  { @apply bg-success-soft text-success ring-success/20 dark:bg-success-dark/20 dark:text-success-dark dark:ring-success-dark/20; }
+    .badge-amber  { @apply bg-warning-soft text-warning-text ring-warning/30 dark:bg-warning/20 dark:text-warning dark:ring-warning/30; }
+    .badge-red    { @apply bg-danger-soft text-danger ring-danger/20 dark:bg-danger-dark/20 dark:text-danger-dark dark:ring-danger-dark/20; }
+    .badge-violet { @apply bg-violet-50 text-violet-700 ring-violet-200 dark:bg-violet-900/30 dark:text-violet-300 dark:ring-violet-800/40; }
 
     /* Previsualización del correo (HTML crudo del builder) */
     .correo-preview table {
@@ -117,15 +117,15 @@
     }
     .correo-preview th,
     .correo-preview td {
-        @apply border border-ink-300 px-2 py-1 text-left;
+        @apply border border-line px-2 py-1 text-left dark:border-white/10;
     }
     .correo-preview th {
-        @apply bg-ink-100 font-semibold;
+        @apply bg-surface-alt font-semibold dark:bg-white/5;
     }
     .correo-preview h3 {
-        @apply mt-4 text-sm font-semibold text-ink-800;
+        @apply mt-4 text-sm font-semibold text-ink-800 dark:text-gray-200;
     }
     .correo-preview p {
-        @apply my-1 text-ink-600;
+        @apply my-1 text-ink-600 dark:text-gray-400;
     }
 }

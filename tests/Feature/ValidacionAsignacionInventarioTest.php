@@ -72,7 +72,7 @@ class ValidacionAsignacionInventarioTest extends TestCase
 
         Volt::actingAs($user)
             ->test('pedidos.show', ['pedido' => 'A'])
-            ->assertSee('text-red-600', false);
+            ->assertSee('text-danger', false);
     }
 
     public function test_no_resalta_cuando_el_disponible_cubre_lo_pedido(): void
@@ -84,7 +84,7 @@ class ValidacionAsignacionInventarioTest extends TestCase
 
         Volt::actingAs($user)
             ->test('pedidos.show', ['pedido' => 'A'])
-            ->assertDontSee('text-red-600', false);
+            ->assertDontSee('text-danger', false);
     }
 
     public function test_disponible_mostrado_es_global_no_excluye_el_propio_pedido(): void

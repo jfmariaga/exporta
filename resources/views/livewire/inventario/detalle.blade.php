@@ -92,7 +92,7 @@ new #[Layout('layouts.app')] class extends Component
                 <input type="date" wire:model.live="hasta" class="field-sm">
             </div>
             <button wire:click="limpiarFiltros" class="btn-secondary">Limpiar</button>
-            <div class="ms-auto text-xs text-ink-400">
+            <div class="ms-auto text-xs text-ink-secondary dark:text-gray-500">
                 {{ $filas->total() }} fila(s)
                 @if ($sincronizadoEn)
                     · sincronizado {{ \Illuminate\Support\Carbon::parse($sincronizadoEn)->format('d/m/Y H:i') }}
@@ -118,7 +118,7 @@ new #[Layout('layouts.app')] class extends Component
                 <tbody>
                 @forelse ($filas as $f)
                     <tr wire:key="det-{{ $f->item }}-{{ $f->lote }}">
-                        <td class="font-semibold text-ink-900">{{ $f->item }}</td>
+                        <td class="font-semibold text-ink-900 dark:text-gray-100">{{ $f->item }}</td>
                         <td>{{ $f->descripcion ?? '—' }}</td>
                         <td>{{ $f->warehouse ?? '—' }}</td>
                         <td>{{ $f->lote ?? '—' }}</td>
@@ -133,7 +133,7 @@ new #[Layout('layouts.app')] class extends Component
                         <td class="whitespace-nowrap">{{ $f->creado?->format('d/m/Y') ?? '—' }}</td>
                     </tr>
                 @empty
-                    <tr><td colspan="7" class="!py-8 text-center text-ink-400">Sin filas para ese filtro.</td></tr>
+                    <tr><td colspan="7" class="!py-8 text-center text-ink-secondary dark:text-gray-500">Sin filas para ese filtro.</td></tr>
                 @endforelse
                 </tbody>
             </table>

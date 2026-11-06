@@ -142,52 +142,52 @@ new #[Layout('layouts.app')] class extends Component
                 <div>
                     <label class="lbl">Ítem</label>
                     <input wire:model="item" class="field w-full">
-                    @error('item') <span class="mt-1 block text-xs text-red-600">{{ $message }}</span> @enderror
+                    @error('item') <span class="mt-1 block text-xs text-danger dark:text-danger-dark">{{ $message }}</span> @enderror
                 </div>
                 <div class="col-span-2">
                     <label class="lbl">Descripción</label>
                     <input wire:model="descripcion" class="field w-full">
-                    @error('descripcion') <span class="mt-1 block text-xs text-red-600">{{ $message }}</span> @enderror
+                    @error('descripcion') <span class="mt-1 block text-xs text-danger dark:text-danger-dark">{{ $message }}</span> @enderror
                 </div>
                 <div>
                     <label class="lbl">Categoría</label>
                     <input wire:model="categoria" class="field w-full">
-                    @error('categoria') <span class="mt-1 block text-xs text-red-600">{{ $message }}</span> @enderror
+                    @error('categoria') <span class="mt-1 block text-xs text-danger dark:text-danger-dark">{{ $message }}</span> @enderror
                 </div>
                 <div>
                     <label class="lbl">Factor kg</label>
                     <input wire:model="factor_kg" type="number" step="0.000001" class="field w-full">
-                    @error('factor_kg') <span class="mt-1 block text-xs text-red-600">{{ $message }}</span> @enderror
+                    @error('factor_kg') <span class="mt-1 block text-xs text-danger dark:text-danger-dark">{{ $message }}</span> @enderror
                 </div>
                 <div>
                     <label class="lbl">Embalaje</label>
                     <input wire:model="embalaje" type="number" class="field w-full">
-                    @error('embalaje') <span class="mt-1 block text-xs text-red-600">{{ $message }}</span> @enderror
+                    @error('embalaje') <span class="mt-1 block text-xs text-danger dark:text-danger-dark">{{ $message }}</span> @enderror
                 </div>
                 <div>
                     <label class="lbl">Volumen</label>
                     <input wire:model="volumen" type="number" step="0.0001" class="field w-full">
-                    @error('volumen') <span class="mt-1 block text-xs text-red-600">{{ $message }}</span> @enderror
+                    @error('volumen') <span class="mt-1 block text-xs text-danger dark:text-danger-dark">{{ $message }}</span> @enderror
                 </div>
                 <div>
                     <label class="lbl">Tendidos</label>
                     <input wire:model="num_tendidos" type="number" class="field w-full">
-                    @error('num_tendidos') <span class="mt-1 block text-xs text-red-600">{{ $message }}</span> @enderror
+                    @error('num_tendidos') <span class="mt-1 block text-xs text-danger dark:text-danger-dark">{{ $message }}</span> @enderror
                 </div>
                 <div>
                     <label class="lbl">Cajas / pallet</label>
                     <input wire:model="cajas_pallet" type="number" class="field w-full">
-                    @error('cajas_pallet') <span class="mt-1 block text-xs text-red-600">{{ $message }}</span> @enderror
+                    @error('cajas_pallet') <span class="mt-1 block text-xs text-danger dark:text-danger-dark">{{ $message }}</span> @enderror
                 </div>
                 <div>
                     <label class="lbl">Altura caja</label>
                     <input wire:model="altura_caja" type="number" step="0.01" class="field w-full">
-                    @error('altura_caja') <span class="mt-1 block text-xs text-red-600">{{ $message }}</span> @enderror
+                    @error('altura_caja') <span class="mt-1 block text-xs text-danger dark:text-danger-dark">{{ $message }}</span> @enderror
                 </div>
                 <div>
                     <label class="lbl">Cajas / nivel</label>
                     <input wire:model="cajas_por_nivel" type="number" step="0.0001" class="field w-full">
-                    @error('cajas_por_nivel') <span class="mt-1 block text-xs text-red-600">{{ $message }}</span> @enderror
+                    @error('cajas_por_nivel') <span class="mt-1 block text-xs text-danger dark:text-danger-dark">{{ $message }}</span> @enderror
                 </div>
                 <div class="col-span-2 flex gap-3 sm:col-span-4">
                     <button class="btn-primary">Guardar</button>
@@ -220,7 +220,7 @@ new #[Layout('layouts.app')] class extends Component
                 @foreach ($parametros as $p)
                     <tr wire:key="p-{{ $p->id }}">
                         <td class="num">{{ $p->item }}</td>
-                        <td class="font-medium text-ink-900">{{ $p->descripcion ?: '—' }}</td>
+                        <td class="font-medium text-ink-900 dark:text-gray-100">{{ $p->descripcion ?: '—' }}</td>
                         <td>{{ $p->categoria ?: '—' }}</td>
                         <td class="num">{{ \App\Support\Numero::decimal($p->factor_kg !== null ? (float) $p->factor_kg : null, 6) }}</td>
                         <td class="num">{{ $p->embalaje !== null ? number_format((float) $p->embalaje, 0, ',', '.') : '—' }}</td>
@@ -235,7 +235,7 @@ new #[Layout('layouts.app')] class extends Component
                                             showCancelButton: true,
                                             confirmButtonText: 'Eliminar',
                                             cancelButtonText: 'Cancelar',
-                                            confirmButtonColor: '#dc2626',
+                                            confirmButtonColor: '#7A1E1E',
                                             reverseButtons: true,
                                         }).then((r) => { if (r.isConfirmed) $wire.eliminar({{ $p->id }}) })" class="btn-danger-link">Eliminar</button>
                             </div>
