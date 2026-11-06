@@ -388,7 +388,6 @@ new #[Layout('layouts.app')] class extends Component
                     <x-ui.th-sort campo="fecha_programa" :actual="$ordenCampo" :dir="$ordenDir">Fecha programada</x-ui.th-sort>
                     <x-ui.th-sort campo="inventario" :actual="$ordenCampo" :dir="$ordenDir" align="right">Inventario</x-ui.th-sort>
                     <x-ui.th-sort campo="porcentaje_cumplimiento" :actual="$ordenCampo" :dir="$ordenDir" align="right">% Cumpl.</x-ui.th-sort>
-                    <th>Condición</th>
                 </tr>
                 </thead>
                 <tbody>
@@ -399,12 +398,54 @@ new #[Layout('layouts.app')] class extends Component
                         $pct = $inv !== null && (float) $l->cantidad_pedida > 0 ? round($inv / (float) $l->cantidad_pedida * 100, 2) : null;
                         $dispItem = (float) ($disponibles[$l->item] ?? 0);
                         $dispInsuficiente = $dispItem < (float) $l->cantidad_pedida;
+                        $condicion = match (true) {
+                            ! $l->actividad_destino || $l->actividad_cumplida => ['label' => 'OK', 'color' => 'green', 'icon' => 'check'],
+                            $l->actividad_destino === 'PROGRAMA SUPERPACK' => ['label' => 'Programa sugerido', 'color' => 'amber', 'icon' => 'warning'],
+                            default => ['label' => 'Requiere atención', 'color' => 'red', 'icon' => 'alert'],
+                        };
                     @endphp
                     <tr wire:key="lin-{{ $l->item }}">
                         <td class="font-semibold text-ink-900 dark:text-gray-100">{{ $l->item }}</td>
                         <td>
                             <div class="text-ink-900 dark:text-gray-100">{{ $l->descripcion }}</div>
                             <div class="text-xs text-ink-secondary dark:text-gray-500">{{ $l->grupo_item }}</div>
+                            <div class="relative mt-1 inline-flex items-center gap-1" x-data="{ abierto: false }">
+                                <x-ui.badge :color="$condicion['color']">
+                                    @if ($condicion['icon'] === 'check')
+                                        <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 12 2 2 4-4"/><circle cx="12" cy="12" r="9"/></svg>
+                                    @elseif ($condicion['icon'] === 'warning')
+                                        <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z"/><path d="M12 9v4M12 17h.01"/></svg>
+                                    @else
+                                        <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v4M12 16h.01"/></svg>
+                                    @endif
+                                    {{ $condicion['label'] }}
+                                </x-ui.badge>
+                                <button type="button" x-on:click="abierto = !abierto" x-on:click.outside="abierto = false"
+                                        class="inline-flex h-5 w-5 items-center justify-center rounded-full text-ink-secondary hover:bg-surface-alt hover:text-ink-900 dark:text-gray-500 dark:hover:bg-white/5 dark:hover:text-gray-200">
+                                    <span class="sr-only">Detalle de la condición</span>
+                                    <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 16v-4M12 8h.01"/></svg>
+                                </button>
+                                <div x-show="abierto" x-cloak x-transition
+                                     class="absolute left-0 top-full z-20 mt-1 w-64 rounded-lg border border-line bg-surface p-3 text-xs shadow-lg dark:border-white/10 dark:bg-surface-dark">
+                                    @if ($l->actividad_destino)
+                                        <div class="font-medium text-ink-900 dark:text-gray-100">{{ $l->actividad_destino }}</div>
+                                        <div class="mt-1 text-ink-secondary dark:text-gray-400">
+                                            @if ($l->actividad_cumplida)
+                                                Cumplida{{ $l->actividad_cumplida_por_nombre ? ' por '.$l->actividad_cumplida_por_nombre : '' }}{{ $l->actividad_cumplida_en ? ' el '.\Illuminate\Support\Carbon::parse($l->actividad_cumplida_en)->format('d/m/Y H:i') : '' }}.
+                                            @else
+                                                Pendiente de cumplir.
+                                            @endif
+                                        </div>
+                                        @if ($puedeEditar)
+                                            <button type="button" wire:click="toggleActividadCumplida('{{ $l->item }}')" class="btn-secondary btn-xs mt-2 w-full">
+                                                {{ $l->actividad_cumplida ? 'Marcar como pendiente' : 'Marcar como cumplida' }}
+                                            </button>
+                                        @endif
+                                    @else
+                                        <div class="text-ink-secondary dark:text-gray-400">Sin condición especial para este destino.</div>
+                                    @endif
+                                </div>
+                            </div>
                         </td>
                         <td class="num whitespace-nowrap">{{ number_format((float) $l->cantidad_pedida, 0, ',', '.') }} <span class="text-xs text-ink-secondary dark:text-gray-500">{{ $l->unidad_medida }}</span></td>
                         <td class="num whitespace-nowrap">
@@ -448,20 +489,9 @@ new #[Layout('layouts.app')] class extends Component
                                 <span @class(['font-medium', 'text-success dark:text-success-dark' => $pct >= 100, 'text-warning-text dark:text-warning' => $pct < 100])>{{ number_format($pct, 1, ',', '.') }}%</span>
                             @else — @endif
                         </td>
-                        <td>
-                            @if ($l->actividad_destino)
-                                <label class="inline-flex items-center gap-2" title="{{ $l->actividad_cumplida ? 'Cumplida'.($l->actividad_cumplida_por_nombre ? ' por '.$l->actividad_cumplida_por_nombre : '').($l->actividad_cumplida_en ? ' el '.\Illuminate\Support\Carbon::parse($l->actividad_cumplida_en)->format('d/m/Y H:i') : '') : 'Pendiente de cumplir' }}">
-                                    <input type="checkbox" wire:click="toggleActividadCumplida('{{ $l->item }}')" @checked($l->actividad_cumplida) @disabled(! $puedeEditar)
-                                           class="rounded border-line dark:border-white/10 text-brand-600 focus:ring-brand-500">
-                                    <x-ui.badge :color="$l->actividad_cumplida ? 'green' : 'red'">{{ $l->actividad_destino }}</x-ui.badge>
-                                </label>
-                            @else
-                                <span class="text-ink-secondary dark:text-gray-500">—</span>
-                            @endif
-                        </td>
                     </tr>
                 @empty
-                    <tr><td colspan="12" class="!py-8 text-center text-ink-secondary dark:text-gray-500">Sin líneas para esa categoría.</td></tr>
+                    <tr><td colspan="11" class="!py-8 text-center text-ink-secondary dark:text-gray-500">Sin líneas para esa categoría.</td></tr>
                 @endforelse
                 </tbody>
             </table>
