@@ -2,15 +2,18 @@
 
 use App\Models\InventarioSincboxDetalle;
 use App\Support\ConOrdenamiento;
+use App\Support\ExportaExcel;
 use App\Support\Permisos;
+use Illuminate\Database\Eloquent\Builder;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Url;
 use Livewire\Volt\Component;
 use Livewire\WithPagination;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 new #[Layout('layouts.app')] class extends Component
 {
-    use ConOrdenamiento, WithPagination;
+    use ConOrdenamiento, ExportaExcel, WithPagination;
 
     private const COLUMNAS_ORDENABLES = ['item', 'descripcion', 'warehouse', 'lote', 'cantidad', 'bloqueado', 'creado'];
 
@@ -41,7 +44,7 @@ new #[Layout('layouts.app')] class extends Component
         $this->resetPage();
     }
 
-    public function with(): array
+    private function queryFilas(): Builder
     {
         // Agrupado por ítem + lote: suma la cantidad de las distintas
         // ubicaciones/bodegas de un mismo lote en una sola fila.
@@ -66,10 +69,25 @@ new #[Layout('layouts.app')] class extends Component
             $filas->orderByRaw('MAX(creado) desc')->orderBy('item');
         }
 
-        $filas = $filas->paginate($this->porPagina);
+        return $filas;
+    }
 
+    public function exportar(): StreamedResponse
+    {
+        $filas = $this->queryFilas()->get();
+
+        return $this->descargarExcel('inventario-detalle.xlsx', [
+            'Ítem', 'Descripción', 'Bodega', 'Lote', 'Cantidad', 'Bloqueado', 'Creado',
+        ], $filas->map(fn ($f) => [
+            $f->item, $f->descripcion, $f->warehouse, $f->lote, (float) $f->cantidad,
+            $f->bloqueado ? 'Sí' : 'No', $f->creado?->format('d/m/Y'),
+        ]));
+    }
+
+    public function with(): array
+    {
         return [
-            'filas' => $filas,
+            'filas' => $this->queryFilas()->paginate($this->porPagina),
             'sincronizadoEn' => InventarioSincboxDetalle::max('sincronizado_en'),
         ];
     }
@@ -78,6 +96,10 @@ new #[Layout('layouts.app')] class extends Component
 <x-ui.page title="Inventario — detalle por lote"
            subtitle="Existencias de SyncBox sin totalizar: una fila por bodega, ubicación y lote.">
     <x-slot:actions>
+        <button wire:click="exportar" class="btn-secondary">
+            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" /></svg>
+            Exportar
+        </button>
         <a href="{{ route('inventario.index') }}" wire:navigate class="btn-secondary">Ver alertas de reparto</a>
     </x-slot:actions>
 

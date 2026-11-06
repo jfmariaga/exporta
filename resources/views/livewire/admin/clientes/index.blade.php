@@ -2,15 +2,18 @@
 
 use App\Models\Cliente;
 use App\Support\ConOrdenamiento;
+use App\Support\ExportaExcel;
 use App\Support\Permisos;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Validation\Rule;
 use Livewire\Attributes\Layout;
 use Livewire\Volt\Component;
 use Livewire\WithPagination;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 new #[Layout('layouts.app')] class extends Component
 {
-    use ConOrdenamiento, WithPagination;
+    use ConOrdenamiento, ExportaExcel, WithPagination;
 
     private const COLUMNAS_ORDENABLES = ['nit_cliente', 'cliente', 'destino'];
 
@@ -84,22 +87,37 @@ new #[Layout('layouts.app')] class extends Component
         session()->flash('status', 'Cliente eliminado.');
     }
 
-    public function with(): array
+    private function queryClientes(): Builder
     {
-        $clientes = Cliente::query()
+        return Cliente::query()
             ->when($this->q, fn ($x) => $x->where(fn ($w) => $w
                 ->where('nit_cliente', 'like', "%{$this->q}%")
                 ->orWhere('cliente', 'like', "%{$this->q}%")
                 ->orWhere('destino', 'like', "%{$this->q}%")))
-            ->orderBy($this->campoOrdenValido(self::COLUMNAS_ORDENABLES) ?? 'cliente', $this->ordenDir)
-            ->paginate(15);
+            ->orderBy($this->campoOrdenValido(self::COLUMNAS_ORDENABLES) ?? 'cliente', $this->ordenDir);
+    }
 
-        return ['clientes' => $clientes];
+    public function exportar(): StreamedResponse
+    {
+        $clientes = $this->queryClientes()->get();
+
+        return $this->descargarExcel('clientes.xlsx', [
+            'NIT', 'Cliente', 'Destino',
+        ], $clientes->map(fn (Cliente $c) => [$c->nit_cliente, $c->cliente, $c->destino]));
+    }
+
+    public function with(): array
+    {
+        return ['clientes' => $this->queryClientes()->paginate(15)];
     }
 }; ?>
 
 <x-ui.page title="Clientes" subtitle="NIT, nombre y destino usados para cruzar el destino de cada pedido.">
     <x-slot:actions>
+        <button wire:click="exportar" class="btn-secondary">
+            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" /></svg>
+            Exportar
+        </button>
         <button wire:click="nuevo" class="btn-primary">
             <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
             Nuevo cliente

@@ -4,14 +4,17 @@ use App\Models\ParametroItem;
 use App\Services\Inventario\DisponibilidadInventario;
 use App\Services\Inventario\InventarioSync;
 use App\Support\ConOrdenamiento;
+use App\Support\ExportaExcel;
 use App\Support\Permisos;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Log;
 use Livewire\Attributes\Layout;
 use Livewire\Volt\Component;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 new #[Layout('layouts.app')] class extends Component
 {
-    use ConOrdenamiento;
+    use ConOrdenamiento, ExportaExcel;
 
     private const COLUMNAS_ORDENABLES = [
         'item', 'descripcion', 'cantidad_total', 'total_pedido', 'faltante',
@@ -43,7 +46,8 @@ new #[Layout('layouts.app')] class extends Component
         $this->detalleAbierto = $this->detalleAbierto === $item ? null : $item;
     }
 
-    public function with(DisponibilidadInventario $disponibilidad): array
+    /** @return Collection<int, array<string,mixed>> */
+    private function estadosOrdenados(DisponibilidadInventario $disponibilidad): Collection
     {
         $estados = $disponibilidad->estados();
 
@@ -56,9 +60,29 @@ new #[Layout('layouts.app')] class extends Component
             $estados = $estados->sortBy($campo, SORT_REGULAR, $this->ordenDir === 'desc')->values();
         }
 
+        return $estados;
+    }
+
+    public function exportar(DisponibilidadInventario $disponibilidad): StreamedResponse
+    {
+        $estados = $this->estadosOrdenados($disponibilidad);
+
+        return $this->descargarExcel('inventario.xlsx', [
+            'Ítem', 'Descripción', 'Inventario', 'Total pedido', 'Faltante', 'Asignado', 'Disponible', 'Estado', 'Sincronizado',
+        ], $estados->map(fn (array $a) => [
+            $a['item'], $a['descripcion'], $a['cantidad_total'], $a['total_pedido'], $a['faltante'],
+            $a['asignado'], $a['disponible'], $a['estado'],
+            $a['sincronizado_en'] ? \Illuminate\Support\Carbon::parse($a['sincronizado_en'])->format('d/m/Y H:i') : null,
+        ]));
+    }
+
+    public function with(DisponibilidadInventario $disponibilidad): array
+    {
+        $estados = $this->estadosOrdenados($disponibilidad);
+
         return [
             'estados' => $estados,
-            'descripciones' => $descripciones,
+            'descripciones' => $estados->pluck('descripcion', 'item'),
             'puedeSincronizar' => auth()->user()->can(Permisos::ERP_IMPORTAR),
         ];
     }
@@ -67,6 +91,10 @@ new #[Layout('layouts.app')] class extends Component
 <x-ui.page title="Inventario"
            subtitle="Existencias de exportación sincronizadas desde SyncBox, repartidas manualmente entre pedidos pendientes que comparten ítem.">
     <x-slot:actions>
+        <button wire:click="exportar" class="btn-secondary">
+            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" /></svg>
+            Exportar
+        </button>
         <a href="{{ route('inventario.detalle') }}" wire:navigate class="btn-secondary">Ver detalle por lote</a>
         @can('erp.importar')
             <button wire:click="sincronizar" class="btn-dark" wire:loading.attr="disabled" wire:target="sincronizar">

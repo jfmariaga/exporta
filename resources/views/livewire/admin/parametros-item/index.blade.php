@@ -2,15 +2,18 @@
 
 use App\Models\ParametroItem;
 use App\Support\ConOrdenamiento;
+use App\Support\ExportaExcel;
 use App\Support\Permisos;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Validation\Rule;
 use Livewire\Attributes\Layout;
 use Livewire\Volt\Component;
 use Livewire\WithPagination;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 new #[Layout('layouts.app')] class extends Component
 {
-    use ConOrdenamiento, WithPagination;
+    use ConOrdenamiento, ExportaExcel, WithPagination;
 
     private const COLUMNAS_ORDENABLES = ['item', 'descripcion', 'categoria', 'factor_kg', 'embalaje', 'volumen'];
 
@@ -118,22 +121,41 @@ new #[Layout('layouts.app')] class extends Component
         session()->flash('status', 'Parámetro eliminado.');
     }
 
-    public function with(): array
+    private function queryParametros(): Builder
     {
-        $parametros = ParametroItem::query()
+        return ParametroItem::query()
             ->when($this->q, fn ($x) => $x->where(fn ($w) => $w
                 ->where('item', 'like', "%{$this->q}%")
                 ->orWhere('descripcion', 'like', "%{$this->q}%")
                 ->orWhere('categoria', 'like', "%{$this->q}%")))
-            ->orderBy($this->campoOrdenValido(self::COLUMNAS_ORDENABLES) ?? 'item', $this->ordenDir)
-            ->paginate(15);
+            ->orderBy($this->campoOrdenValido(self::COLUMNAS_ORDENABLES) ?? 'item', $this->ordenDir);
+    }
 
-        return ['parametros' => $parametros];
+    public function exportar(): StreamedResponse
+    {
+        $parametros = $this->queryParametros()->get();
+
+        return $this->descargarExcel('parametros-item.xlsx', [
+            'Ítem', 'Descripción', 'Categoría', 'Factor kg', 'Embalaje', 'Volumen',
+        ], $parametros->map(fn (ParametroItem $p) => [
+            $p->item, $p->descripcion, $p->categoria,
+            $p->factor_kg !== null ? (float) $p->factor_kg : null,
+            $p->embalaje, $p->volumen !== null ? (float) $p->volumen : null,
+        ]));
+    }
+
+    public function with(): array
+    {
+        return ['parametros' => $this->queryParametros()->paginate(15)];
     }
 }; ?>
 
 <x-ui.page title="Parámetros de ítem" subtitle="Factor kg y datos de embalaje usados para calcular toneladas.">
     <x-slot:actions>
+        <button wire:click="exportar" class="btn-secondary">
+            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" /></svg>
+            Exportar
+        </button>
         <button wire:click="nuevo" class="btn-primary">
             <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
             Nuevo parámetro

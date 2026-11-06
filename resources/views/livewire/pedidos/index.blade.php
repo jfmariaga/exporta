@@ -4,7 +4,9 @@ use App\Services\Erp\ConsultaDirectaErp;
 use App\Services\ImportadorErp;
 use App\Services\PedidosPorLiberarQuery;
 use App\Support\ConOrdenamiento;
+use App\Support\ExportaExcel;
 use App\Support\Permisos;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
@@ -13,10 +15,11 @@ use Livewire\Attributes\Url;
 use Livewire\Volt\Component;
 use Livewire\WithFileUploads;
 use Livewire\WithPagination;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 new #[Layout('layouts.app')] class extends Component
 {
-    use ConOrdenamiento, WithFileUploads, WithPagination;
+    use ConOrdenamiento, ExportaExcel, WithFileUploads, WithPagination;
 
     private const COLUMNAS_ORDENABLES = [
         'pedido', 'nombre_cliente', 'destino', 'fecha_solicitud', 'cantidad_total',
@@ -96,12 +99,37 @@ new #[Layout('layouts.app')] class extends Component
         session()->flash('status', 'Sincronización con el ERP completada.');
     }
 
-    public function with(PedidosPorLiberarQuery $consulta): array
+    private function filtros(): array
     {
-        $filtros = [
+        return [
             'q' => $this->q, 'destino' => $this->destino,
             'estado' => $this->estado, 'revision' => $this->revision,
         ];
+    }
+
+    public function exportar(PedidosPorLiberarQuery $consulta): StreamedResponse
+    {
+        $filas = $consulta->resumenPorPedidoColeccion(
+            $this->filtros(), $this->campoOrdenValido(self::COLUMNAS_ORDENABLES), $this->ordenDir,
+        );
+
+        return $this->descargarExcel('pedidos-por-liberar.xlsx', [
+            'Pedido', 'Cliente', 'NIT', 'Destino', 'F. solicitud', 'Cantidad', 'Toneladas', 'Cajas',
+            'Volumen m3', 'Contenedor', 'Inventario', '% Cumpl.', 'Estado', 'F. tent.', 'Seguimiento', 'Revisión',
+        ], $filas->map(fn ($p) => [
+            $p->pedido, $p->nombre_cliente, $p->nit_cliente, $p->destino,
+            $p->fecha_solicitud ? Carbon::parse($p->fecha_solicitud)->format('d/m/Y') : null,
+            (float) $p->cantidad_total, round((float) $p->toneladas_total, 1), $p->cajas_total, $p->volumen_total,
+            $p->contenedor_sugerido, $p->inventario_total !== null ? (float) $p->inventario_total : null,
+            $p->porcentaje_cumplimiento !== null ? round((float) $p->porcentaje_cumplimiento, 1) : null,
+            $p->estado, $p->fecha_tentativa_cargue ? Carbon::parse($p->fecha_tentativa_cargue)->format('d/m/Y') : null,
+            $p->estado_seguimiento, $p->estado_revision,
+        ]));
+    }
+
+    public function with(PedidosPorLiberarQuery $consulta): array
+    {
+        $filtros = $this->filtros();
 
         return [
             'pedidos' => $consulta->resumenPorPedido(
@@ -116,6 +144,10 @@ new #[Layout('layouts.app')] class extends Component
 <x-ui.page title="Pedidos por liberar"
            subtitle="Pedidos de venta de exportación en estado PL/PP pendientes de liberación.">
     <x-slot:actions>
+        <button wire:click="exportar" class="btn-secondary">
+            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" /></svg>
+            Exportar
+        </button>
         @can('erp.importar')
             @if (config('erp.fuente') === 'directo')
                 <button wire:click="sincronizar" class="btn-dark" wire:loading.attr="disabled" wire:target="sincronizar">

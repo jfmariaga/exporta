@@ -2,18 +2,20 @@
 
 use App\Models\Role;
 use App\Support\ConOrdenamiento;
+use App\Support\ExportaExcel;
 use App\Support\Permisos;
 use Livewire\Attributes\Layout;
 use Livewire\Volt\Component;
 use Spatie\Permission\Models\Permission;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 new #[Layout('layouts.app')] class extends Component
 {
-    use ConOrdenamiento;
+    use ConOrdenamiento, ExportaExcel;
 
     private const COLUMNAS_ORDENABLES = ['permiso', 'descripcion', 'roles_count'];
 
-    public function with(): array
+    private function matriz()
     {
         $roles = Role::with('permissions')->orderBy('name')->get();
         $etiquetas = Permisos::etiquetas();
@@ -28,8 +30,22 @@ new #[Layout('layouts.app')] class extends Component
             $matriz = $matriz->sortBy($campo, SORT_REGULAR, $this->ordenDir === 'desc')->values();
         }
 
+        return $matriz;
+    }
+
+    public function exportar(): StreamedResponse
+    {
+        return $this->descargarExcel('permisos.xlsx', [
+            'Permiso', 'Descripción', 'Roles',
+        ], $this->matriz()->map(fn (array $fila) => [
+            $fila['permiso'], $fila['descripcion'], implode(', ', $fila['roles']),
+        ]));
+    }
+
+    public function with(): array
+    {
         return [
-            'matriz' => $matriz,
+            'matriz' => $this->matriz(),
             'totalPermisos' => Permission::count(),
         ];
     }
@@ -38,6 +54,10 @@ new #[Layout('layouts.app')] class extends Component
 <x-ui.page title="Catálogo de permisos"
            subtitle="Fijo ({{ $totalPermisos }} permisos), sólo lectura. Los roles se administran en la sección Roles.">
     <x-slot:actions>
+        <button wire:click="exportar" class="btn-secondary">
+            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" /></svg>
+            Exportar
+        </button>
         <a href="{{ route('admin.roles.index') }}" wire:navigate class="btn-secondary">
             <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" /></svg>
             Roles

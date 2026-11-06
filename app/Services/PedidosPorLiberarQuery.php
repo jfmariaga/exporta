@@ -54,6 +54,22 @@ class PedidosPorLiberarQuery
      */
     public function lineasPorEstadoMateriales(string $estado, int $porPagina = 25, ?string $ordenCampo = null, string $ordenDir = 'asc'): LengthAwarePaginator
     {
+        return $this->queryLineasPorEstadoMateriales($estado, $ordenCampo, $ordenDir)->paginate($porPagina);
+    }
+
+    /**
+     * Mismas líneas que {@see lineasPorEstadoMateriales()} pero sin paginar
+     * (para exportar a Excel todo lo que cumple el filtro).
+     *
+     * @return Collection<int, object>
+     */
+    public function lineasPorEstadoMaterialesColeccion(string $estado, ?string $ordenCampo = null, string $ordenDir = 'asc'): Collection
+    {
+        return $this->queryLineasPorEstadoMateriales($estado, $ordenCampo, $ordenDir)->get();
+    }
+
+    private function queryLineasPorEstadoMateriales(string $estado, ?string $ordenCampo, string $ordenDir): Builder
+    {
         $q = $this->baseQuery()
             ->join('seguimientos as s', function ($join) {
                 $join->on('s.pedido', '=', 'l.pedido')->on('s.item', '=', 'l.item');
@@ -66,7 +82,7 @@ class PedidosPorLiberarQuery
             $q->orderBy('l.pedido')->orderBy('l.item');
         }
 
-        return $q->paginate($porPagina);
+        return $q;
     }
 
     /**
@@ -93,6 +109,42 @@ class PedidosPorLiberarQuery
      * @return LengthAwarePaginator<int, object>
      */
     public function resumenPorPedido(array $filtros = [], int $porPagina = 25, ?string $ordenCampo = null, string $ordenDir = 'asc'): LengthAwarePaginator
+    {
+        $paginador = $this->queryResumenPorPedido($filtros, $ordenCampo, $ordenDir)->paginate($porPagina);
+
+        if (! empty($filtros['revision'])) {
+            $quiereRevisado = $filtros['revision'] === 'REVISADO';
+            $paginador->setCollection(
+                $paginador->getCollection()->filter(fn ($f) => (bool) $f->revisado === $quiereRevisado)->values()
+            );
+        }
+
+        $paginador->getCollection()->transform(fn ($fila) => $this->transformarResumen($fila));
+
+        return $paginador;
+    }
+
+    /**
+     * Mismo resumen que {@see resumenPorPedido()} pero sin paginar (para
+     * exportar a Excel todo lo que cumple los filtros).
+     *
+     * @param  array<string,mixed>  $filtros
+     * @return Collection<int, object>
+     */
+    public function resumenPorPedidoColeccion(array $filtros = [], ?string $ordenCampo = null, string $ordenDir = 'asc'): Collection
+    {
+        $filas = $this->queryResumenPorPedido($filtros, $ordenCampo, $ordenDir)->get();
+
+        if (! empty($filtros['revision'])) {
+            $quiereRevisado = $filtros['revision'] === 'REVISADO';
+            $filas = $filas->filter(fn ($f) => (bool) $f->revisado === $quiereRevisado)->values();
+        }
+
+        return $filas->map(fn ($fila) => $this->transformarResumen($fila));
+    }
+
+    /** @param  array<string,mixed>  $filtros */
+    private function queryResumenPorPedido(array $filtros, ?string $ordenCampo, string $ordenDir): Builder
     {
         $q = DB::table('lineas_pedido as l')
             ->whereIn('l.estado', EstadosPedido::POR_LIBERAR)
@@ -143,27 +195,19 @@ class PedidosPorLiberarQuery
             $q->orderBy('l.pedido');
         }
 
-        $paginador = $q->paginate($porPagina);
+        return $q;
+    }
 
-        if (! empty($filtros['revision'])) {
-            $quiereRevisado = $filtros['revision'] === 'REVISADO';
-            $paginador->setCollection(
-                $paginador->getCollection()->filter(fn ($f) => (bool) $f->revisado === $quiereRevisado)->values()
-            );
-        }
+    private function transformarResumen(object $fila): object
+    {
+        $fila->estado_revision = $fila->revisado ? 'REVISADO' : 'POR REVISAR';
+        $fila->estado_seguimiento ??= 'Pendiente';
+        $fila->alerta = $this->alerta($fila->estado_seguimiento);
+        $fila->cajas_total = round((float) $fila->cajas_total, 1);
+        $fila->volumen_total = round((float) $fila->volumen_total, 2);
+        $fila->contenedor_sugerido = $this->contenedorSugerido($fila->volumen_total);
 
-        $paginador->getCollection()->transform(function ($fila) {
-            $fila->estado_revision = $fila->revisado ? 'REVISADO' : 'POR REVISAR';
-            $fila->estado_seguimiento ??= 'Pendiente';
-            $fila->alerta = $this->alerta($fila->estado_seguimiento);
-            $fila->cajas_total = round((float) $fila->cajas_total, 1);
-            $fila->volumen_total = round((float) $fila->volumen_total, 2);
-            $fila->contenedor_sugerido = $this->contenedorSugerido($fila->volumen_total);
-
-            return $fila;
-        });
-
-        return $paginador;
+        return $fila;
     }
 
     /**

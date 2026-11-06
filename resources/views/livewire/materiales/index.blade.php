@@ -3,14 +3,16 @@
 use App\Enums\EstadoMateriales;
 use App\Services\PedidosPorLiberarQuery;
 use App\Support\ConOrdenamiento;
+use App\Support\ExportaExcel;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Url;
 use Livewire\Volt\Component;
 use Livewire\WithPagination;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 new #[Layout('layouts.app')] class extends Component
 {
-    use ConOrdenamiento, WithPagination;
+    use ConOrdenamiento, ExportaExcel, WithPagination;
 
     private const COLUMNAS_ORDENABLES = ['pedido', 'nombre_cliente', 'destino', 'item', 'descripcion', 'cantidad_pedida'];
 
@@ -22,6 +24,23 @@ new #[Layout('layouts.app')] class extends Component
     public function updatedEstado(): void
     {
         $this->resetPage();
+    }
+
+    public function exportar(PedidosPorLiberarQuery $consulta): ?StreamedResponse
+    {
+        if ($this->estado === '') {
+            return null;
+        }
+
+        $filas = $consulta->lineasPorEstadoMaterialesColeccion(
+            $this->estado, $this->campoOrdenValido(self::COLUMNAS_ORDENABLES), $this->ordenDir,
+        );
+
+        return $this->descargarExcel('gestion-por-item.xlsx', [
+            'Pedido', 'Cliente', 'Destino', 'Ítem', 'Descripción', 'Cant. pedida',
+        ], $filas->map(fn ($l) => [
+            $l->pedido, $l->nombre_cliente, $l->destino, $l->item, $l->descripcion, (float) $l->cantidad_pedida,
+        ]));
     }
 
     public function with(PedidosPorLiberarQuery $consulta): array
@@ -40,6 +59,15 @@ new #[Layout('layouts.app')] class extends Component
 
 <x-ui.page title="Gestión por ítem"
            subtitle="Filtra las líneas de pedidos por liberar según su estado de materiales. Los ítems sin estado asignado no se muestran.">
+    @if ($estado !== '')
+        <x-slot:actions>
+            <button wire:click="exportar" class="btn-secondary">
+                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" /></svg>
+                Exportar
+            </button>
+        </x-slot:actions>
+    @endif
+
     <x-ui.card class="p-4">
         <label class="lbl">Estado de materiales</label>
         <select wire:model.live="estado" class="field-sm w-full sm:max-w-sm">

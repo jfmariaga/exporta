@@ -4,18 +4,21 @@ use App\Models\Role;
 use App\Models\User;
 use App\Support\AdministradorGuard;
 use App\Support\ConOrdenamiento;
+use App\Support\ExportaExcel;
 use App\Support\Permisos;
 use App\Support\RolesBase;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\Rule;
 use Livewire\Attributes\Layout;
 use Livewire\Volt\Component;
 use Livewire\WithPagination;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 new #[Layout('layouts.app')] class extends Component
 {
-    use ConOrdenamiento, WithPagination;
+    use ConOrdenamiento, ExportaExcel, WithPagination;
 
     private const COLUMNAS_ORDENABLES = ['name', 'email', 'activo'];
 
@@ -170,22 +173,39 @@ new #[Layout('layouts.app')] class extends Component
         session()->flash('status', 'Contraseña restablecida.');
     }
 
-    public function with(): array
+    private function queryUsuarios(): Builder
     {
-        $usuarios = User::query()->with('roles')
+        return User::query()->with('roles')
             ->when($this->filtroRol, fn ($x) => $x->role($this->filtroRol))
             ->when($this->filtroEstado, fn ($x) => $x->where('activo', $this->filtroEstado === 'activo'))
             ->when($this->q, fn ($x) => $x->where(fn ($w) => $w
                 ->where('name', 'like', "%{$this->q}%")->orWhere('email', 'like', "%{$this->q}%")))
-            ->orderBy($this->campoOrdenValido(self::COLUMNAS_ORDENABLES) ?? 'name', $this->ordenDir)
-            ->paginate(15);
+            ->orderBy($this->campoOrdenValido(self::COLUMNAS_ORDENABLES) ?? 'name', $this->ordenDir);
+    }
 
-        return ['usuarios' => $usuarios, 'roles' => Role::orderBy('name')->pluck('name')];
+    public function exportar(): StreamedResponse
+    {
+        $usuarios = $this->queryUsuarios()->get();
+
+        return $this->descargarExcel('usuarios.xlsx', [
+            'Nombre', 'Correo', 'Roles', 'Estado',
+        ], $usuarios->map(fn (User $u) => [
+            $u->name, $u->email, $u->getRoleNames()->implode(', '), $u->activo ? 'Activo' : 'Inactivo',
+        ]));
+    }
+
+    public function with(): array
+    {
+        return ['usuarios' => $this->queryUsuarios()->paginate(15), 'roles' => Role::orderBy('name')->pluck('name')];
     }
 }; ?>
 
 <x-ui.page title="Usuarios" subtitle="Altas, roles y estado de acceso del equipo.">
     <x-slot:actions>
+        <button wire:click="exportar" class="btn-secondary">
+            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" /></svg>
+            Exportar
+        </button>
         <button wire:click="nuevo" class="btn-primary">
             <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
             Nuevo usuario

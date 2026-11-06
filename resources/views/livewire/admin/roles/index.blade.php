@@ -3,16 +3,18 @@
 use App\Models\Role;
 use App\Support\AdministradorGuard;
 use App\Support\ConOrdenamiento;
+use App\Support\ExportaExcel;
 use App\Support\Permisos;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\Rule;
 use Livewire\Attributes\Layout;
 use Livewire\Volt\Component;
 use Spatie\Permission\PermissionRegistrar;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 new #[Layout('layouts.app')] class extends Component
 {
-    use ConOrdenamiento;
+    use ConOrdenamiento, ExportaExcel;
 
     private const COLUMNAS_ORDENABLES = ['name', 'users_count', 'permissions_count'];
 
@@ -88,12 +90,25 @@ new #[Layout('layouts.app')] class extends Component
         session()->flash('status', 'Rol eliminado.');
     }
 
+    private function queryRoles()
+    {
+        return Role::withCount(['users', 'permissions'])
+            ->orderBy($this->campoOrdenValido(self::COLUMNAS_ORDENABLES) ?? 'name', $this->ordenDir);
+    }
+
+    public function exportar(): StreamedResponse
+    {
+        $roles = $this->queryRoles()->get();
+
+        return $this->descargarExcel('roles.xlsx', [
+            'Rol', 'Usuarios', 'Permisos',
+        ], $roles->map(fn (Role $r) => [$r->name, $r->users_count, $r->permissions_count]));
+    }
+
     public function with(): array
     {
         return [
-            'roles' => Role::withCount(['users', 'permissions'])
-                ->orderBy($this->campoOrdenValido(self::COLUMNAS_ORDENABLES) ?? 'name', $this->ordenDir)
-                ->get(),
+            'roles' => $this->queryRoles()->get(),
             'permisos' => Permisos::TODOS,
             'etiquetas' => Permisos::etiquetas(),
         ];
@@ -102,6 +117,10 @@ new #[Layout('layouts.app')] class extends Component
 
 <x-ui.page title="Roles" subtitle="Agrupaciones de permisos que se asignan a los usuarios.">
     <x-slot:actions>
+        <button wire:click="exportar" class="btn-secondary">
+            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" /></svg>
+            Exportar
+        </button>
         <a href="{{ route('admin.permisos.index') }}" wire:navigate class="btn-secondary">Catálogo de permisos</a>
         <button wire:click="nuevo" class="btn-primary">
             <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>

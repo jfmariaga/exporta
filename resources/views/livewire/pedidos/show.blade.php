@@ -9,19 +9,22 @@ use App\Services\Inventario\DisponibilidadInventario;
 use App\Services\PedidosPorLiberarQuery;
 use App\Support\ConOrdenamiento;
 use App\Support\EstadosPedido;
+use App\Support\ExportaExcel;
 use App\Support\Permisos;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Pagination\Paginator;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Url;
 use Livewire\Volt\Component;
 use Livewire\WithPagination;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 new #[Layout('layouts.app')] class extends Component
 {
-    use ConOrdenamiento, WithPagination;
+    use ConOrdenamiento, ExportaExcel, WithPagination;
 
     private const COLUMNAS_ORDENABLES = [
         'item', 'descripcion', 'cantidad_pedida', 'toneladas_linea', 'cajas_linea',
@@ -146,13 +149,9 @@ new #[Layout('layouts.app')] class extends Component
         session()->flash('status', 'Seguimiento de líneas guardado.');
     }
 
-    public function with(PedidosPorLiberarQuery $consulta, DisponibilidadInventario $disponibilidad): array
+    /** Líneas filtradas por categoría y ordenadas (sin paginar), para la tabla y para exportar. */
+    private function lineasFiltradasOrdenadas(Collection $todas): Collection
     {
-        $detalle = $consulta->detallePedido($this->pedido);
-        $todas = $detalle['lineas'];
-
-        $categorias = $todas->pluck('categoria')->filter()->unique()->sort()->values();
-
         $lineas = $this->categoria === ''
             ? $todas
             : $todas->where('categoria', $this->categoria)->values();
@@ -160,6 +159,48 @@ new #[Layout('layouts.app')] class extends Component
         if ($campo = $this->campoOrdenValido(self::COLUMNAS_ORDENABLES)) {
             $lineas = $lineas->sortBy($campo, SORT_REGULAR, $this->ordenDir === 'desc')->values();
         }
+
+        return $lineas;
+    }
+
+    public function exportar(PedidosPorLiberarQuery $consulta): StreamedResponse
+    {
+        $detalle = $consulta->detallePedido($this->pedido);
+        $lineas = $this->lineasFiltradasOrdenadas($detalle['lineas']);
+
+        $filas = $lineas->map(function ($l) {
+            $seg = $this->lineasSeg[$l->item] ?? [];
+            $inv = isset($seg['inventario']) && $seg['inventario'] !== null && $seg['inventario'] !== ''
+                ? (float) $seg['inventario'] : null;
+            $pct = $inv !== null && (float) $l->cantidad_pedida > 0 ? round($inv / (float) $l->cantidad_pedida * 100, 2) : null;
+
+            return [
+                $l->item, $l->descripcion, (float) $l->cantidad_pedida,
+                $l->sin_factor ? null : round((float) $l->toneladas_linea, 1),
+                $l->cajas_linea !== null ? round((float) $l->cajas_linea, 1) : null,
+                $l->sin_volumen ? null : round((float) $l->volumen_linea, 2),
+                $seg['estado_materiales'] ?? null,
+                $seg['observaciones'] ?? null,
+                $seg['fecha_programa'] ?? null,
+                $inv,
+                $pct,
+            ];
+        });
+
+        return $this->descargarExcel('pedido-'.$this->pedido.'-lineas.xlsx', [
+            'Ítem', 'Descripción', 'Cant. pedida', 'Toneladas', 'Cajas', 'Volumen m3',
+            'Estado materiales', 'Observaciones', 'Fecha programada', 'Inventario', '% Cumpl.',
+        ], $filas);
+    }
+
+    public function with(PedidosPorLiberarQuery $consulta, DisponibilidadInventario $disponibilidad): array
+    {
+        $detalle = $consulta->detallePedido($this->pedido);
+        $todas = $detalle['lineas'];
+
+        $categorias = $todas->pluck('categoria')->filter()->unique()->sort()->values();
+
+        $lineas = $this->lineasFiltradasOrdenadas($todas);
 
         $paginaActual = Paginator::resolveCurrentPage() ?: 1;
         $pagina = $lineas->forPage($paginaActual, $this->porPagina)->values();
@@ -190,6 +231,10 @@ new #[Layout('layouts.app')] class extends Component
 
 <x-ui.page :title="'Pedido ' . $pedido">
     <x-slot:actions>
+        <button wire:click="exportar" class="btn-secondary">
+            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" /></svg>
+            Exportar
+        </button>
         <a href="{{ route('pedidos.index') }}" wire:navigate class="btn-secondary">
             <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" /></svg>
             Volver
