@@ -401,6 +401,8 @@ new #[Layout('layouts.app')] class extends Component
                         $condicion = match (true) {
                             ! $l->actividad_destino || $l->actividad_cumplida => ['label' => 'OK', 'color' => 'green', 'icon' => 'check'],
                             $l->actividad_destino === 'PROGRAMA SUPERPACK' => ['label' => 'Programa sugerido', 'color' => 'amber', 'icon' => 'warning'],
+                            $l->actividad_destino === 'SOLICITAR CEDI' => ['label' => 'Solicitar CEDI', 'color' => 'blue', 'icon' => 'info'],
+                            $l->actividad_destino === 'GESTIONAR PEDIDO' => ['label' => 'Requiere atención', 'color' => 'red', 'icon' => 'alert'],
                             default => ['label' => 'Requiere atención', 'color' => 'red', 'icon' => 'alert'],
                         };
                     @endphp
@@ -415,6 +417,8 @@ new #[Layout('layouts.app')] class extends Component
                                         <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 12 2 2 4-4"/><circle cx="12" cy="12" r="9"/></svg>
                                     @elseif ($condicion['icon'] === 'warning')
                                         <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z"/><path d="M12 9v4M12 17h.01"/></svg>
+                                    @elseif ($condicion['icon'] === 'info')
+                                        <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8v13H3V8M1 3h22v5H1zM10 12h4"/></svg>
                                     @else
                                         <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v4M12 16h.01"/></svg>
                                     @endif
