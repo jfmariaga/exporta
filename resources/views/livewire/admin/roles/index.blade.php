@@ -2,6 +2,7 @@
 
 use App\Models\Role;
 use App\Support\AdministradorGuard;
+use App\Support\ConOrdenamiento;
 use App\Support\Permisos;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\Rule;
@@ -11,6 +12,10 @@ use Spatie\Permission\PermissionRegistrar;
 
 new #[Layout('layouts.app')] class extends Component
 {
+    use ConOrdenamiento;
+
+    private const COLUMNAS_ORDENABLES = ['name', 'users_count', 'permissions_count'];
+
     public bool $mostrandoForm = false;
 
     public ?int $editandoId = null;
@@ -86,7 +91,9 @@ new #[Layout('layouts.app')] class extends Component
     public function with(): array
     {
         return [
-            'roles' => Role::withCount(['users', 'permissions'])->orderBy('name')->get(),
+            'roles' => Role::withCount(['users', 'permissions'])
+                ->orderBy($this->campoOrdenValido(self::COLUMNAS_ORDENABLES) ?? 'name', $this->ordenDir)
+                ->get(),
             'permisos' => Permisos::TODOS,
             'etiquetas' => Permisos::etiquetas(),
         ];
@@ -134,7 +141,12 @@ new #[Layout('layouts.app')] class extends Component
         <div class="overflow-x-auto">
             <table class="data-table">
                 <thead>
-                <tr><th>Rol</th><th class="!text-right">Usuarios</th><th class="!text-right">Permisos</th><th class="!text-right">Acciones</th></tr>
+                <tr>
+                    <x-ui.th-sort campo="name" :actual="$ordenCampo" :dir="$ordenDir">Rol</x-ui.th-sort>
+                    <x-ui.th-sort campo="users_count" :actual="$ordenCampo" :dir="$ordenDir" align="right">Usuarios</x-ui.th-sort>
+                    <x-ui.th-sort campo="permissions_count" :actual="$ordenCampo" :dir="$ordenDir" align="right">Permisos</x-ui.th-sort>
+                    <th class="!text-right">Acciones</th>
+                </tr>
                 </thead>
                 <tbody>
                 @foreach ($roles as $rol)

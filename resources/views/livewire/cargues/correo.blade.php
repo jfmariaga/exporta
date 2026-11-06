@@ -9,6 +9,9 @@ use Livewire\Volt\Component;
 new #[Layout('layouts.app')] class extends Component
 {
     #[Url]
+    public string $pedido = '';
+
+    #[Url]
     public string $destino = '';
 
     #[Url]
@@ -20,6 +23,7 @@ new #[Layout('layouts.app')] class extends Component
     public function with(): array
     {
         $builder = new CorreoCarguesBuilder([
+            'pedido' => $this->pedido ?: null,
             'destino' => $this->destino ?: null,
             'desde' => $this->desde ?: null,
             'hasta' => $this->hasta ?: null,
@@ -36,7 +40,11 @@ new #[Layout('layouts.app')] class extends Component
 <x-ui.page title="Correo de cargues"
            subtitle="Pedidos con fecha tentativa de cargue, listos para comunicar a logística.">
     <x-ui.card class="p-4">
-        <div class="grid grid-cols-1 gap-3 sm:grid-cols-3">
+        <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <div>
+                <label class="lbl">Pedido</label>
+                <input wire:model.live.debounce.400ms="pedido" placeholder="Número de pedido" class="field-sm w-full">
+            </div>
             <div>
                 <label class="lbl">Destino</label>
                 <select wire:model.live="destino" class="field-sm w-full">

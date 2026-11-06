@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\Cliente;
+use App\Support\ConOrdenamiento;
 use App\Support\Permisos;
 use Illuminate\Validation\Rule;
 use Livewire\Attributes\Layout;
@@ -9,7 +10,9 @@ use Livewire\WithPagination;
 
 new #[Layout('layouts.app')] class extends Component
 {
-    use WithPagination;
+    use ConOrdenamiento, WithPagination;
+
+    private const COLUMNAS_ORDENABLES = ['nit_cliente', 'cliente', 'destino'];
 
     public string $q = '';
 
@@ -88,7 +91,8 @@ new #[Layout('layouts.app')] class extends Component
                 ->where('nit_cliente', 'like', "%{$this->q}%")
                 ->orWhere('cliente', 'like', "%{$this->q}%")
                 ->orWhere('destino', 'like', "%{$this->q}%")))
-            ->orderBy('cliente')->paginate(15);
+            ->orderBy($this->campoOrdenValido(self::COLUMNAS_ORDENABLES) ?? 'cliente', $this->ordenDir)
+            ->paginate(15);
 
         return ['clientes' => $clientes];
     }
@@ -137,7 +141,12 @@ new #[Layout('layouts.app')] class extends Component
         <div class="overflow-x-auto">
             <table class="data-table">
                 <thead>
-                <tr><th>NIT</th><th>Cliente</th><th>Destino</th><th class="!text-right">Acciones</th></tr>
+                <tr>
+                    <x-ui.th-sort campo="nit_cliente" :actual="$ordenCampo" :dir="$ordenDir">NIT</x-ui.th-sort>
+                    <x-ui.th-sort campo="cliente" :actual="$ordenCampo" :dir="$ordenDir">Cliente</x-ui.th-sort>
+                    <x-ui.th-sort campo="destino" :actual="$ordenCampo" :dir="$ordenDir">Destino</x-ui.th-sort>
+                    <th class="!text-right">Acciones</th>
+                </tr>
                 </thead>
                 <tbody>
                 @foreach ($clientes as $c)

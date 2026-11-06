@@ -30,6 +30,7 @@ class CorreoCarguesBuilder
             ->where('l.item', 'not like', '7%')
             ->where('l.activo', true)
             ->whereNotNull('sp.fecha_tentativa_cargue')
+            ->when(! empty($this->filtros['pedido']), fn ($w) => $w->where('l.pedido', 'like', '%'.$this->filtros['pedido'].'%'))
             ->when(! empty($this->filtros['destino']), fn ($w) => $w->where('c.destino', $this->filtros['destino']))
             ->when(! empty($this->filtros['desde']), fn ($w) => $w->whereDate('sp.fecha_tentativa_cargue', '>=', $this->filtros['desde']))
             ->when(! empty($this->filtros['hasta']), fn ($w) => $w->whereDate('sp.fecha_tentativa_cargue', '<=', $this->filtros['hasta']))
@@ -38,7 +39,8 @@ class CorreoCarguesBuilder
                 'l.pedido', 'l.item', 'l.descripcion', 'l.cantidad_pedida',
                 'l.nombre_cliente', 'COALESCE(c.destino, "#N/D") as destino',
                 'sp.fecha_tentativa_cargue', 'sp.estado_seguimiento',
-                's.estado_materiales', 's.observaciones', 's.fecha_programa', 's.inventario',
+                's.observaciones', 's.fecha_programa', 's.inventario',
+                'CASE WHEN l.cantidad_pedida > 0 AND s.inventario IS NOT NULL THEN s.inventario * 100.0 / l.cantidad_pedida END as porcentaje_cumplimiento',
             ]))
             ->get()
             ->groupBy('pedido');
@@ -56,6 +58,11 @@ class CorreoCarguesBuilder
         return rtrim(rtrim(number_format($v, 3, '.', ''), '0'), '.');
     }
 
+    private function pct(?float $v): string
+    {
+        return $v !== null ? number_format($v, 1, ',', '.').'%' : '—';
+    }
+
     public function html(): string
     {
         $grupos = $this->grupos();
@@ -69,14 +76,14 @@ class CorreoCarguesBuilder
             $out .= "<h3>Pedido {$pedido} — ".e($primera->nombre_cliente).' ('.e($primera->destino).')</h3>';
             $out .= '<p>'.e($this->frase($primera->fecha_tentativa_cargue)).'</p>';
             $out .= '<table border="1" cellspacing="0" cellpadding="4"><tr>'
-                .'<th>Ítem</th><th>Descripción</th><th>Cantidad</th><th>Inventario</th><th>Estado materiales</th><th>Fecha programada</th><th>Observaciones</th></tr>';
+                .'<th>Ítem</th><th>Descripción</th><th>Cantidad</th><th>Inventario</th><th>% Cumpl.</th><th>Fecha programada</th><th>Observaciones</th></tr>';
             foreach ($lineas as $l) {
                 $out .= '<tr>'
                     .'<td>'.e($l->item).'</td>'
                     .'<td>'.e($l->descripcion).'</td>'
                     .'<td>'.e($this->cant((float) $l->cantidad_pedida)).'</td>'
                     .'<td>'.e($l->inventario !== null ? $this->cant((float) $l->inventario) : '—').'</td>'
-                    .'<td>'.e((string) $l->estado_materiales).'</td>'
+                    .'<td>'.e($this->pct($l->porcentaje_cumplimiento !== null ? (float) $l->porcentaje_cumplimiento : null)).'</td>'
                     .'<td>'.e($l->fecha_programa ? Carbon::parse($l->fecha_programa)->format('d/m/Y') : '—').'</td>'
                     .'<td>'.e((string) $l->observaciones).'</td>'
                     .'</tr>';
@@ -100,7 +107,8 @@ class CorreoCarguesBuilder
             $out[] = "Pedido {$pedido} — {$primera->nombre_cliente} ({$primera->destino})";
             $out[] = $this->frase($primera->fecha_tentativa_cargue);
             foreach ($lineas as $l) {
-                $out[] = "  - {$l->item}  {$l->descripcion}  x{$this->cant((float) $l->cantidad_pedida)}  [{$l->estado_materiales}]";
+                $pct = $this->pct($l->porcentaje_cumplimiento !== null ? (float) $l->porcentaje_cumplimiento : null);
+                $out[] = "  - {$l->item}  {$l->descripcion}  x{$this->cant((float) $l->cantidad_pedida)}  [{$pct}]";
             }
             $out[] = '';
         }

@@ -52,16 +52,21 @@ class PedidosPorLiberarQuery
      *
      * @return LengthAwarePaginator<int, object>
      */
-    public function lineasPorEstadoMateriales(string $estado, int $porPagina = 25): LengthAwarePaginator
+    public function lineasPorEstadoMateriales(string $estado, int $porPagina = 25, ?string $ordenCampo = null, string $ordenDir = 'asc'): LengthAwarePaginator
     {
-        return $this->baseQuery()
+        $q = $this->baseQuery()
             ->join('seguimientos as s', function ($join) {
                 $join->on('s.pedido', '=', 'l.pedido')->on('s.item', '=', 'l.item');
             })
-            ->where('s.estado_materiales', $estado)
-            ->orderBy('l.pedido')
-            ->orderBy('l.item')
-            ->paginate($porPagina);
+            ->where('s.estado_materiales', $estado);
+
+        if ($ordenCampo !== null) {
+            $q->orderBy($ordenCampo, $ordenDir);
+        } else {
+            $q->orderBy('l.pedido')->orderBy('l.item');
+        }
+
+        return $q->paginate($porPagina);
     }
 
     /**
@@ -87,7 +92,7 @@ class PedidosPorLiberarQuery
      * @param  array<string,mixed>  $filtros
      * @return LengthAwarePaginator<int, object>
      */
-    public function resumenPorPedido(array $filtros = [], int $porPagina = 25): LengthAwarePaginator
+    public function resumenPorPedido(array $filtros = [], int $porPagina = 25, ?string $ordenCampo = null, string $ordenDir = 'asc'): LengthAwarePaginator
     {
         $q = DB::table('lineas_pedido as l')
             ->whereIn('l.estado', EstadosPedido::POR_LIBERAR)
@@ -132,7 +137,11 @@ class PedidosPorLiberarQuery
             $q->where(fn ($w) => $w->where('l.pedido', 'like', $termino)->orWhere('l.nit_cliente', 'like', $termino));
         }
 
-        $q->orderBy('l.pedido');
+        if ($ordenCampo !== null) {
+            $q->orderBy($ordenCampo, $ordenDir);
+        } else {
+            $q->orderBy('l.pedido');
+        }
 
         $paginador = $q->paginate($porPagina);
 

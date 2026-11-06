@@ -3,6 +3,7 @@
 use App\Models\ParametroItem;
 use App\Services\Inventario\DisponibilidadInventario;
 use App\Services\Inventario\InventarioSync;
+use App\Support\ConOrdenamiento;
 use App\Support\Permisos;
 use Illuminate\Support\Facades\Log;
 use Livewire\Attributes\Layout;
@@ -10,6 +11,13 @@ use Livewire\Volt\Component;
 
 new #[Layout('layouts.app')] class extends Component
 {
+    use ConOrdenamiento;
+
+    private const COLUMNAS_ORDENABLES = [
+        'item', 'descripcion', 'cantidad_total', 'total_pedido', 'faltante',
+        'asignado', 'disponible', 'estado', 'sincronizado_en',
+    ];
+
     public ?array $resumenSync = null;
 
     public ?string $detalleAbierto = null;
@@ -41,6 +49,12 @@ new #[Layout('layouts.app')] class extends Component
 
         $descripciones = ParametroItem::whereIn('item', $estados->pluck('item'))
             ->pluck('descripcion', 'item');
+
+        $estados = $estados->map(fn (array $a) => $a + ['descripcion' => $descripciones[$a['item']] ?? null]);
+
+        if ($campo = $this->campoOrdenValido(self::COLUMNAS_ORDENABLES)) {
+            $estados = $estados->sortBy($campo, SORT_REGULAR, $this->ordenDir === 'desc')->values();
+        }
 
         return [
             'estados' => $estados,
@@ -81,15 +95,15 @@ new #[Layout('layouts.app')] class extends Component
             <table class="data-table">
                 <thead>
                 <tr>
-                    <th>Ítem</th>
-                    <th>Descripción</th>
-                    <th class="!text-right">Inventario</th>
-                    <th class="!text-right">Total pedido</th>
-                    <th class="!text-right">Faltante</th>
-                    <th class="!text-right">Asignado</th>
-                    <th class="!text-right">Disponible</th>
-                    <th>Estado</th>
-                    <th>Sincronizado</th>
+                    <x-ui.th-sort campo="item" :actual="$ordenCampo" :dir="$ordenDir">Ítem</x-ui.th-sort>
+                    <x-ui.th-sort campo="descripcion" :actual="$ordenCampo" :dir="$ordenDir">Descripción</x-ui.th-sort>
+                    <x-ui.th-sort campo="cantidad_total" :actual="$ordenCampo" :dir="$ordenDir" align="right">Inventario</x-ui.th-sort>
+                    <x-ui.th-sort campo="total_pedido" :actual="$ordenCampo" :dir="$ordenDir" align="right">Total pedido</x-ui.th-sort>
+                    <x-ui.th-sort campo="faltante" :actual="$ordenCampo" :dir="$ordenDir" align="right">Faltante</x-ui.th-sort>
+                    <x-ui.th-sort campo="asignado" :actual="$ordenCampo" :dir="$ordenDir" align="right">Asignado</x-ui.th-sort>
+                    <x-ui.th-sort campo="disponible" :actual="$ordenCampo" :dir="$ordenDir" align="right">Disponible</x-ui.th-sort>
+                    <x-ui.th-sort campo="estado" :actual="$ordenCampo" :dir="$ordenDir">Estado</x-ui.th-sort>
+                    <x-ui.th-sort campo="sincronizado_en" :actual="$ordenCampo" :dir="$ordenDir">Sincronizado</x-ui.th-sort>
                     <th></th>
                 </tr>
                 </thead>

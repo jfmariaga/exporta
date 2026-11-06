@@ -3,6 +3,7 @@
 use App\Models\Role;
 use App\Models\User;
 use App\Support\AdministradorGuard;
+use App\Support\ConOrdenamiento;
 use App\Support\Permisos;
 use App\Support\RolesBase;
 use Illuminate\Support\Facades\Hash;
@@ -14,7 +15,9 @@ use Livewire\WithPagination;
 
 new #[Layout('layouts.app')] class extends Component
 {
-    use WithPagination;
+    use ConOrdenamiento, WithPagination;
+
+    private const COLUMNAS_ORDENABLES = ['name', 'email', 'activo'];
 
     public string $q = '';
 
@@ -174,7 +177,8 @@ new #[Layout('layouts.app')] class extends Component
             ->when($this->filtroEstado, fn ($x) => $x->where('activo', $this->filtroEstado === 'activo'))
             ->when($this->q, fn ($x) => $x->where(fn ($w) => $w
                 ->where('name', 'like', "%{$this->q}%")->orWhere('email', 'like', "%{$this->q}%")))
-            ->orderBy('name')->paginate(15);
+            ->orderBy($this->campoOrdenValido(self::COLUMNAS_ORDENABLES) ?? 'name', $this->ordenDir)
+            ->paginate(15);
 
         return ['usuarios' => $usuarios, 'roles' => Role::orderBy('name')->pluck('name')];
     }
@@ -257,7 +261,13 @@ new #[Layout('layouts.app')] class extends Component
         <div class="overflow-x-auto">
             <table class="data-table">
                 <thead>
-                <tr><th>Nombre</th><th>Correo</th><th>Roles</th><th>Estado</th><th class="!text-right">Acciones</th></tr>
+                <tr>
+                    <x-ui.th-sort campo="name" :actual="$ordenCampo" :dir="$ordenDir">Nombre</x-ui.th-sort>
+                    <x-ui.th-sort campo="email" :actual="$ordenCampo" :dir="$ordenDir">Correo</x-ui.th-sort>
+                    <th>Roles</th>
+                    <x-ui.th-sort campo="activo" :actual="$ordenCampo" :dir="$ordenDir">Estado</x-ui.th-sort>
+                    <th class="!text-right">Acciones</th>
+                </tr>
                 </thead>
                 <tbody>
                 @foreach ($usuarios as $u)

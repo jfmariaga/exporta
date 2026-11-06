@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\InventarioSincboxDetalle;
+use App\Support\ConOrdenamiento;
 use App\Support\Permisos;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Url;
@@ -9,7 +10,9 @@ use Livewire\WithPagination;
 
 new #[Layout('layouts.app')] class extends Component
 {
-    use WithPagination;
+    use ConOrdenamiento, WithPagination;
+
+    private const COLUMNAS_ORDENABLES = ['item', 'descripcion', 'warehouse', 'lote', 'cantidad', 'bloqueado', 'creado'];
 
     #[Url]
     public string $item = '';
@@ -55,10 +58,15 @@ new #[Layout('layouts.app')] class extends Component
                 'SUM(cantidad) as cantidad',
                 'MAX(bloqueado) as bloqueado',
                 'MAX(creado) as creado',
-            ]))
-            ->orderByRaw('MAX(creado) desc')
-            ->orderBy('item')
-            ->paginate($this->porPagina);
+            ]));
+
+        if ($campo = $this->campoOrdenValido(self::COLUMNAS_ORDENABLES)) {
+            $filas->orderBy($campo, $this->ordenDir);
+        } else {
+            $filas->orderByRaw('MAX(creado) desc')->orderBy('item');
+        }
+
+        $filas = $filas->paginate($this->porPagina);
 
         return [
             'filas' => $filas,
@@ -106,13 +114,13 @@ new #[Layout('layouts.app')] class extends Component
             <table class="data-table">
                 <thead>
                 <tr>
-                    <th>Ítem</th>
-                    <th>Descripción</th>
-                    <th>Bodega</th>
-                    <th>Lote</th>
-                    <th class="!text-right">Cantidad</th>
-                    <th>Bloqueado</th>
-                    <th>Creado</th>
+                    <x-ui.th-sort campo="item" :actual="$ordenCampo" :dir="$ordenDir">Ítem</x-ui.th-sort>
+                    <x-ui.th-sort campo="descripcion" :actual="$ordenCampo" :dir="$ordenDir">Descripción</x-ui.th-sort>
+                    <x-ui.th-sort campo="warehouse" :actual="$ordenCampo" :dir="$ordenDir">Bodega</x-ui.th-sort>
+                    <x-ui.th-sort campo="lote" :actual="$ordenCampo" :dir="$ordenDir">Lote</x-ui.th-sort>
+                    <x-ui.th-sort campo="cantidad" :actual="$ordenCampo" :dir="$ordenDir" align="right">Cantidad</x-ui.th-sort>
+                    <x-ui.th-sort campo="bloqueado" :actual="$ordenCampo" :dir="$ordenDir">Bloqueado</x-ui.th-sort>
+                    <x-ui.th-sort campo="creado" :actual="$ordenCampo" :dir="$ordenDir">Creado</x-ui.th-sort>
                 </tr>
                 </thead>
                 <tbody>

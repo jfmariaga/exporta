@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\Role;
+use App\Support\ConOrdenamiento;
 use App\Support\Permisos;
 use Livewire\Attributes\Layout;
 use Livewire\Volt\Component;
@@ -8,18 +9,27 @@ use Spatie\Permission\Models\Permission;
 
 new #[Layout('layouts.app')] class extends Component
 {
+    use ConOrdenamiento;
+
+    private const COLUMNAS_ORDENABLES = ['permiso', 'descripcion', 'roles_count'];
+
     public function with(): array
     {
         $roles = Role::with('permissions')->orderBy('name')->get();
+        $etiquetas = Permisos::etiquetas();
 
-        $matriz = [];
-        foreach (Permisos::TODOS as $permiso) {
-            $matriz[$permiso] = $roles->filter(fn (Role $r) => $r->permissions->contains('name', $permiso))->pluck('name')->all();
+        $matriz = collect(Permisos::TODOS)->map(fn (string $permiso) => [
+            'permiso' => $permiso,
+            'descripcion' => $etiquetas[$permiso] ?? '',
+            'roles' => $roles->filter(fn (Role $r) => $r->permissions->contains('name', $permiso))->pluck('name')->all(),
+        ])->map(fn (array $fila) => $fila + ['roles_count' => count($fila['roles'])]);
+
+        if ($campo = $this->campoOrdenValido(self::COLUMNAS_ORDENABLES)) {
+            $matriz = $matriz->sortBy($campo, SORT_REGULAR, $this->ordenDir === 'desc')->values();
         }
 
         return [
             'matriz' => $matriz,
-            'etiquetas' => Permisos::etiquetas(),
             'totalPermisos' => Permission::count(),
         ];
     }
@@ -38,15 +48,19 @@ new #[Layout('layouts.app')] class extends Component
         <div class="overflow-x-auto">
             <table class="data-table">
                 <thead>
-                <tr><th>Permiso</th><th>Descripción</th><th>Roles que lo tienen</th></tr>
+                <tr>
+                    <x-ui.th-sort campo="permiso" :actual="$ordenCampo" :dir="$ordenDir">Permiso</x-ui.th-sort>
+                    <x-ui.th-sort campo="descripcion" :actual="$ordenCampo" :dir="$ordenDir">Descripción</x-ui.th-sort>
+                    <x-ui.th-sort campo="roles_count" :actual="$ordenCampo" :dir="$ordenDir">Roles que lo tienen</x-ui.th-sort>
+                </tr>
                 </thead>
                 <tbody>
-                @foreach ($matriz as $permiso => $rolesConPermiso)
-                    <tr wire:key="p-{{ $permiso }}">
-                        <td><span class="rounded bg-surface-alt dark:bg-white/5 px-1.5 py-0.5 font-mono text-xs text-ink-secondary dark:text-gray-400">{{ $permiso }}</span></td>
-                        <td class="text-ink-900 dark:text-gray-300">{{ $etiquetas[$permiso] ?? '' }}</td>
+                @foreach ($matriz as $fila)
+                    <tr wire:key="p-{{ $fila['permiso'] }}">
+                        <td><span class="rounded bg-surface-alt dark:bg-white/5 px-1.5 py-0.5 font-mono text-xs text-ink-secondary dark:text-gray-400">{{ $fila['permiso'] }}</span></td>
+                        <td class="text-ink-900 dark:text-gray-300">{{ $fila['descripcion'] }}</td>
                         <td>
-                            @forelse ($rolesConPermiso as $rn)
+                            @forelse ($fila['roles'] as $rn)
                                 <x-ui.badge color="indigo" class="mr-1">{{ $rn }}</x-ui.badge>
                             @empty
                                 <span class="text-ink-secondary dark:text-gray-500">—</span>

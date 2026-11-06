@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\ParametroItem;
+use App\Support\ConOrdenamiento;
 use App\Support\Permisos;
 use Illuminate\Validation\Rule;
 use Livewire\Attributes\Layout;
@@ -9,7 +10,9 @@ use Livewire\WithPagination;
 
 new #[Layout('layouts.app')] class extends Component
 {
-    use WithPagination;
+    use ConOrdenamiento, WithPagination;
+
+    private const COLUMNAS_ORDENABLES = ['item', 'descripcion', 'categoria', 'factor_kg', 'embalaje', 'volumen'];
 
     public string $q = '';
 
@@ -122,7 +125,8 @@ new #[Layout('layouts.app')] class extends Component
                 ->where('item', 'like', "%{$this->q}%")
                 ->orWhere('descripcion', 'like', "%{$this->q}%")
                 ->orWhere('categoria', 'like', "%{$this->q}%")))
-            ->orderBy('item')->paginate(15);
+            ->orderBy($this->campoOrdenValido(self::COLUMNAS_ORDENABLES) ?? 'item', $this->ordenDir)
+            ->paginate(15);
 
         return ['parametros' => $parametros];
     }
@@ -207,12 +211,12 @@ new #[Layout('layouts.app')] class extends Component
             <table class="data-table data-table--compact">
                 <thead>
                 <tr>
-                    <th>Ítem</th>
-                    <th>Descripción</th>
-                    <th>Categoría</th>
-                    <th class="num">Factor kg</th>
-                    <th class="num">Embalaje</th>
-                    <th class="num">Volumen</th>
+                    <x-ui.th-sort campo="item" :actual="$ordenCampo" :dir="$ordenDir">Ítem</x-ui.th-sort>
+                    <x-ui.th-sort campo="descripcion" :actual="$ordenCampo" :dir="$ordenDir">Descripción</x-ui.th-sort>
+                    <x-ui.th-sort campo="categoria" :actual="$ordenCampo" :dir="$ordenDir">Categoría</x-ui.th-sort>
+                    <x-ui.th-sort campo="factor_kg" :actual="$ordenCampo" :dir="$ordenDir" align="right">Factor kg</x-ui.th-sort>
+                    <x-ui.th-sort campo="embalaje" :actual="$ordenCampo" :dir="$ordenDir" align="right">Embalaje</x-ui.th-sort>
+                    <x-ui.th-sort campo="volumen" :actual="$ordenCampo" :dir="$ordenDir" align="right">Volumen</x-ui.th-sort>
                     <th class="!text-right">Acciones</th>
                 </tr>
                 </thead>

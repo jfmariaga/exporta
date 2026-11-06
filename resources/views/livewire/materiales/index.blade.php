@@ -2,6 +2,7 @@
 
 use App\Enums\EstadoMateriales;
 use App\Services\PedidosPorLiberarQuery;
+use App\Support\ConOrdenamiento;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Url;
 use Livewire\Volt\Component;
@@ -9,7 +10,9 @@ use Livewire\WithPagination;
 
 new #[Layout('layouts.app')] class extends Component
 {
-    use WithPagination;
+    use ConOrdenamiento, WithPagination;
+
+    private const COLUMNAS_ORDENABLES = ['pedido', 'nombre_cliente', 'destino', 'item', 'descripcion', 'cantidad_pedida'];
 
     #[Url]
     public string $estado = '';
@@ -25,7 +28,10 @@ new #[Layout('layouts.app')] class extends Component
     {
         return [
             'lineas' => $this->estado !== ''
-                ? $consulta->lineasPorEstadoMateriales($this->estado, $this->porPagina)
+                ? $consulta->lineasPorEstadoMateriales(
+                    $this->estado, $this->porPagina,
+                    $this->campoOrdenValido(self::COLUMNAS_ORDENABLES), $this->ordenDir,
+                )
                 : null,
             'estados' => EstadoMateriales::valores(),
         ];
@@ -54,12 +60,12 @@ new #[Layout('layouts.app')] class extends Component
                 <table class="data-table data-table--compact">
                     <thead>
                     <tr>
-                        <th>Pedido</th>
-                        <th>Cliente</th>
-                        <th>Destino</th>
-                        <th>Ítem</th>
-                        <th>Descripción</th>
-                        <th class="!text-right">Cant. pedida</th>
+                        <x-ui.th-sort campo="pedido" :actual="$ordenCampo" :dir="$ordenDir">Pedido</x-ui.th-sort>
+                        <x-ui.th-sort campo="nombre_cliente" :actual="$ordenCampo" :dir="$ordenDir">Cliente</x-ui.th-sort>
+                        <x-ui.th-sort campo="destino" :actual="$ordenCampo" :dir="$ordenDir">Destino</x-ui.th-sort>
+                        <x-ui.th-sort campo="item" :actual="$ordenCampo" :dir="$ordenDir">Ítem</x-ui.th-sort>
+                        <x-ui.th-sort campo="descripcion" :actual="$ordenCampo" :dir="$ordenDir">Descripción</x-ui.th-sort>
+                        <x-ui.th-sort campo="cantidad_pedida" :actual="$ordenCampo" :dir="$ordenDir" align="right">Cant. pedida</x-ui.th-sort>
                     </tr>
                     </thead>
                     <tbody>
@@ -68,10 +74,7 @@ new #[Layout('layouts.app')] class extends Component
                             <td>
                                 <a href="{{ route('pedidos.show', $l->pedido) }}" wire:navigate class="font-semibold text-brand-600 hover:text-brand-500">{{ $l->pedido }}</a>
                             </td>
-                            <td>
-                                <div class="font-medium text-ink-900 dark:text-gray-100">{{ $l->nombre_cliente }}</div>
-                                <div class="text-xs text-ink-secondary dark:text-gray-500">{{ $l->nit_cliente }}</div>
-                            </td>
+                            <td class="font-medium text-ink-900 dark:text-gray-100">{{ $l->nombre_cliente }}</td>
                             <td class="whitespace-nowrap">{{ $l->destino }}</td>
                             <td class="font-semibold text-ink-900 dark:text-gray-100">{{ $l->item }}</td>
                             <td>{{ $l->descripcion }}</td>

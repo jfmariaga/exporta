@@ -3,6 +3,7 @@
 use App\Services\Erp\ConsultaDirectaErp;
 use App\Services\ImportadorErp;
 use App\Services\PedidosPorLiberarQuery;
+use App\Support\ConOrdenamiento;
 use App\Support\Permisos;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -15,7 +16,14 @@ use Livewire\WithPagination;
 
 new #[Layout('layouts.app')] class extends Component
 {
-    use WithFileUploads, WithPagination;
+    use ConOrdenamiento, WithFileUploads, WithPagination;
+
+    private const COLUMNAS_ORDENABLES = [
+        'pedido', 'nombre_cliente', 'destino', 'fecha_solicitud', 'cantidad_total',
+        'toneladas_total', 'cajas_total', 'volumen_total', 'inventario_total',
+        'porcentaje_cumplimiento', 'estado', 'fecha_tentativa_cargue',
+        'estado_seguimiento', 'revisado',
+    ];
 
     #[Url]
     public string $q = '';
@@ -96,7 +104,10 @@ new #[Layout('layouts.app')] class extends Component
         ];
 
         return [
-            'pedidos' => $consulta->resumenPorPedido($filtros, $this->porPagina),
+            'pedidos' => $consulta->resumenPorPedido(
+                $filtros, $this->porPagina,
+                $this->campoOrdenValido(self::COLUMNAS_ORDENABLES), $this->ordenDir,
+            ),
             'destinos' => DB::table('clientes')->whereNotNull('destino')->orderBy('destino')->distinct()->pluck('destino'),
         ];
     }
@@ -170,21 +181,21 @@ new #[Layout('layouts.app')] class extends Component
             <table class="data-table data-table--compact">
                 <thead>
                 <tr>
-                    <th>Pedido</th>
-                    <th>Cliente</th>
-                    <th>Destino</th>
-                    <th>F. solicitud</th>
-                    <th class="!text-right">Cantidad</th>
-                    <th class="!text-right">Toneladas</th>
-                    <th class="!text-right">Cajas</th>
-                    <th class="!text-right">Volumen m³</th>
+                    <x-ui.th-sort campo="pedido" :actual="$ordenCampo" :dir="$ordenDir">Pedido</x-ui.th-sort>
+                    <x-ui.th-sort campo="nombre_cliente" :actual="$ordenCampo" :dir="$ordenDir">Cliente</x-ui.th-sort>
+                    <x-ui.th-sort campo="destino" :actual="$ordenCampo" :dir="$ordenDir">Destino</x-ui.th-sort>
+                    <x-ui.th-sort campo="fecha_solicitud" :actual="$ordenCampo" :dir="$ordenDir">F. solicitud</x-ui.th-sort>
+                    <x-ui.th-sort campo="cantidad_total" :actual="$ordenCampo" :dir="$ordenDir" align="right">Cantidad</x-ui.th-sort>
+                    <x-ui.th-sort campo="toneladas_total" :actual="$ordenCampo" :dir="$ordenDir" align="right">Toneladas</x-ui.th-sort>
+                    <x-ui.th-sort campo="cajas_total" :actual="$ordenCampo" :dir="$ordenDir" align="right">Cajas</x-ui.th-sort>
+                    <x-ui.th-sort campo="volumen_total" :actual="$ordenCampo" :dir="$ordenDir" align="right">Volumen m³</x-ui.th-sort>
                     <th>Contenedor</th>
-                    <th class="!text-right">Inventario</th>
-                    <th class="!text-right">% Cumpl.</th>
-                    <th>Estado</th>
-                    <th>F. tent.</th>
-                    <th>Seguimiento</th>
-                    <th>Revisión</th>
+                    <x-ui.th-sort campo="inventario_total" :actual="$ordenCampo" :dir="$ordenDir" align="right">Inventario</x-ui.th-sort>
+                    <x-ui.th-sort campo="porcentaje_cumplimiento" :actual="$ordenCampo" :dir="$ordenDir" align="right">% Cumpl.</x-ui.th-sort>
+                    <x-ui.th-sort campo="estado" :actual="$ordenCampo" :dir="$ordenDir">Estado</x-ui.th-sort>
+                    <x-ui.th-sort campo="fecha_tentativa_cargue" :actual="$ordenCampo" :dir="$ordenDir">F. tent.</x-ui.th-sort>
+                    <x-ui.th-sort campo="estado_seguimiento" :actual="$ordenCampo" :dir="$ordenDir">Seguimiento</x-ui.th-sort>
+                    <x-ui.th-sort campo="revisado" :actual="$ordenCampo" :dir="$ordenDir">Revisión</x-ui.th-sort>
                 </tr>
                 </thead>
                 <tbody>

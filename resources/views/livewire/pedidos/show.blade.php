@@ -7,6 +7,7 @@ use App\Models\Seguimiento;
 use App\Models\SeguimientoPedido;
 use App\Services\Inventario\DisponibilidadInventario;
 use App\Services\PedidosPorLiberarQuery;
+use App\Support\ConOrdenamiento;
 use App\Support\EstadosPedido;
 use App\Support\Permisos;
 use Illuminate\Pagination\LengthAwarePaginator;
@@ -20,7 +21,13 @@ use Livewire\WithPagination;
 
 new #[Layout('layouts.app')] class extends Component
 {
-    use WithPagination;
+    use ConOrdenamiento, WithPagination;
+
+    private const COLUMNAS_ORDENABLES = [
+        'item', 'descripcion', 'cantidad_pedida', 'toneladas_linea', 'cajas_linea',
+        'volumen_linea', 'estado_materiales', 'observaciones', 'fecha_programa',
+        'inventario', 'porcentaje_cumplimiento',
+    ];
 
     public string $pedido;
 
@@ -149,6 +156,10 @@ new #[Layout('layouts.app')] class extends Component
         $lineas = $this->categoria === ''
             ? $todas
             : $todas->where('categoria', $this->categoria)->values();
+
+        if ($campo = $this->campoOrdenValido(self::COLUMNAS_ORDENABLES)) {
+            $lineas = $lineas->sortBy($campo, SORT_REGULAR, $this->ordenDir === 'desc')->values();
+        }
 
         $paginaActual = Paginator::resolveCurrentPage() ?: 1;
         $pagina = $lineas->forPage($paginaActual, $this->porPagina)->values();
@@ -279,17 +290,17 @@ new #[Layout('layouts.app')] class extends Component
             <table class="data-table">
                 <thead>
                 <tr>
-                    <th>Ítem</th>
-                    <th>Descripción</th>
-                    <th class="!text-right">Cant. pedida</th>
-                    <th class="!text-right">Toneladas</th>
-                    <th class="!text-right">Cajas</th>
-                    <th class="!text-right">Volumen m³</th>
-                    <th>Estado</th>
-                    <th>Observaciones</th>
-                    <th>Fecha programada</th>
-                    <th class="!text-right">Inventario</th>
-                    <th class="!text-right">% Cumpl.</th>
+                    <x-ui.th-sort campo="item" :actual="$ordenCampo" :dir="$ordenDir">Ítem</x-ui.th-sort>
+                    <x-ui.th-sort campo="descripcion" :actual="$ordenCampo" :dir="$ordenDir">Descripción</x-ui.th-sort>
+                    <x-ui.th-sort campo="cantidad_pedida" :actual="$ordenCampo" :dir="$ordenDir" align="right">Cant. pedida</x-ui.th-sort>
+                    <x-ui.th-sort campo="toneladas_linea" :actual="$ordenCampo" :dir="$ordenDir" align="right">Toneladas</x-ui.th-sort>
+                    <x-ui.th-sort campo="cajas_linea" :actual="$ordenCampo" :dir="$ordenDir" align="right">Cajas</x-ui.th-sort>
+                    <x-ui.th-sort campo="volumen_linea" :actual="$ordenCampo" :dir="$ordenDir" align="right">Volumen m³</x-ui.th-sort>
+                    <x-ui.th-sort campo="estado_materiales" :actual="$ordenCampo" :dir="$ordenDir">Estado</x-ui.th-sort>
+                    <x-ui.th-sort campo="observaciones" :actual="$ordenCampo" :dir="$ordenDir">Observaciones</x-ui.th-sort>
+                    <x-ui.th-sort campo="fecha_programa" :actual="$ordenCampo" :dir="$ordenDir">Fecha programada</x-ui.th-sort>
+                    <x-ui.th-sort campo="inventario" :actual="$ordenCampo" :dir="$ordenDir" align="right">Inventario</x-ui.th-sort>
+                    <x-ui.th-sort campo="porcentaje_cumplimiento" :actual="$ordenCampo" :dir="$ordenDir" align="right">% Cumpl.</x-ui.th-sort>
                 </tr>
                 </thead>
                 <tbody>
