@@ -1,6 +1,7 @@
 <?php
 
 use App\Services\CorreoCarguesBuilder;
+use App\Support\EstadosPedido;
 use Illuminate\Support\Facades\DB;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Url;
@@ -33,6 +34,13 @@ new #[Layout('layouts.app')] class extends Component
             'html' => $builder->html(),
             'texto' => $builder->texto(),
             'destinos' => DB::table('clientes')->whereNotNull('destino')->orderBy('destino')->distinct()->pluck('destino'),
+            'pedidos' => DB::table('lineas_pedido as l')
+                ->join('seguimiento_pedidos as sp', 'sp.pedido', '=', 'l.pedido')
+                ->whereIn('l.estado', EstadosPedido::POR_LIBERAR)
+                ->where('l.item', 'not like', '7%')
+                ->where('l.activo', true)
+                ->whereNotNull('sp.fecha_tentativa_cargue')
+                ->distinct()->orderBy('l.pedido')->pluck('l.pedido'),
         ];
     }
 }; ?>
@@ -43,7 +51,10 @@ new #[Layout('layouts.app')] class extends Component
         <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
             <div>
                 <label class="lbl">Pedido</label>
-                <input wire:model.live.debounce.400ms="pedido" placeholder="Número de pedido" class="field-sm w-full">
+                <select wire:model.live="pedido" class="field-sm w-full">
+                    <option value="">Todos</option>
+                    @foreach ($pedidos as $p) <option value="{{ $p }}">{{ $p }}</option> @endforeach
+                </select>
             </div>
             <div>
                 <label class="lbl">Destino</label>

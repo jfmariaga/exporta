@@ -30,7 +30,7 @@ class CorreoCarguesBuilder
             ->where('l.item', 'not like', '7%')
             ->where('l.activo', true)
             ->whereNotNull('sp.fecha_tentativa_cargue')
-            ->when(! empty($this->filtros['pedido']), fn ($w) => $w->where('l.pedido', 'like', '%'.$this->filtros['pedido'].'%'))
+            ->when(! empty($this->filtros['pedido']), fn ($w) => $w->where('l.pedido', $this->filtros['pedido']))
             ->when(! empty($this->filtros['destino']), fn ($w) => $w->where('c.destino', $this->filtros['destino']))
             ->when(! empty($this->filtros['desde']), fn ($w) => $w->whereDate('sp.fecha_tentativa_cargue', '>=', $this->filtros['desde']))
             ->when(! empty($this->filtros['hasta']), fn ($w) => $w->whereDate('sp.fecha_tentativa_cargue', '<=', $this->filtros['hasta']))
